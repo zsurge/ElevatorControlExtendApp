@@ -64,17 +64,18 @@ typedef struct
 }READER_BUFF_STRU;
 #pragma pack()
 
-#pragma pack(1)
+
 typedef struct
 {
-   char data[38];         //需要发送给服务器的数据 
+   uint8_t devSn;
+   uint8_t value;
 }ELEVATOR_BUFF_STRU;
-#pragma pack()
+
 
 
 
 extern READER_BUFF_STRU gReaderMsg;
-extern ELEVATOR_BUFF_STRU gElevtorData;
+extern ELEVATOR_BUFF_STRU gElevtorData,gRecvElevtorData;
 
 
 extern int gConnectStatus;

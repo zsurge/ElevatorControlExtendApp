@@ -181,8 +181,8 @@ static void AppObjCreate (void)
     }
     
     
-    xTransDataQueue = xQueueCreate((UBaseType_t ) QUEUE_LEN,/* 消息队列的长度 */
-                              (UBaseType_t ) sizeof(char *));/* 消息的大小 */
+    xTransDataQueue = xQueueCreate((UBaseType_t ) 30,/* 消息队列的长度 */
+                              (UBaseType_t ) sizeof(ELEVATOR_BUFF_STRU *));/* 消息的大小 */
     if(xTransDataQueue == NULL)
     {
         App_Printf("创建 xTransDataQueue 消息队列失败!\r\n");

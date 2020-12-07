@@ -1662,7 +1662,7 @@ void USART6_IRQHandler(void)
 
 
  
-
+#if 0
 
 void RS485_U6_RX_EN(void)
 {
@@ -1698,7 +1698,7 @@ void RS485_U6_TX_EN(void)
 
 }
 
-
+#endif
 
 
 

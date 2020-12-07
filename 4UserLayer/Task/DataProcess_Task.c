@@ -40,7 +40,7 @@ static void test(void);
 #define MAX_RS485_LEN 37
 
  
-#define DATAPROC_TASK_PRIO		(tskIDLE_PRIORITY + 6) 
+#define DATAPROC_TASK_PRIO		(tskIDLE_PRIORITY + 7) 
 #define DATAPROC_STK_SIZE 		(configMINIMAL_STACK_SIZE*12)
 
 /*----------------------------------------------*

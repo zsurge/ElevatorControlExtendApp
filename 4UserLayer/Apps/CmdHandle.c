@@ -64,7 +64,7 @@ int	gMySock = 0;
 uint8_t gUpdateDevSn = 0; 
 
 
-ELEVATOR_BUFF_STRU gElevtorData;
+ELEVATOR_BUFF_STRU gElevtorData,gRecvElevtorData;
 
 READER_BUFF_STRU gReaderMsg;
 

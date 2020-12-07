@@ -36,7 +36,7 @@
 /*----------------------------------------------*
  * ∫Í∂®“Â                                       *
  *----------------------------------------------*/
-#define BARCODE_TASK_PRIO		(tskIDLE_PRIORITY + 7)
+#define BARCODE_TASK_PRIO		(tskIDLE_PRIORITY + 8)
 #define BARCODE_STK_SIZE 		(configMINIMAL_STACK_SIZE*10)
 
 

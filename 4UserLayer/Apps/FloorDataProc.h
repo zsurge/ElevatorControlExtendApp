@@ -59,7 +59,6 @@
  * 内部函数原型说明                             *
  *----------------------------------------------*/
 
-void packetDefaultSendBuf(uint8_t *buf);
 void packetSendBuf(READER_BUFF_STRU *pQueue);
 
 

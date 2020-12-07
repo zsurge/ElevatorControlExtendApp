@@ -30,7 +30,7 @@
 #include "FloorDataProc.h"
 #include "bsp_usart6.h"
 #include "malloc.h"
-
+#include "tool.h"
 
 
 /*----------------------------------------------*
@@ -56,11 +56,10 @@ typedef struct FROMHOST
 }FROMHOST_STRU;
 
  
-#define COMM_TASK_PRIO		(tskIDLE_PRIORITY + 8) 
+#define COMM_TASK_PRIO		(tskIDLE_PRIORITY + 6) 
 #define COMM_STK_SIZE 		(configMINIMAL_STACK_SIZE*4)
-//static uint32_t totalCnt = 0;
-//static uint32_t validCnt = 0;
-//static uint32_t sendCnt = 0;
+
+uint16_t packetBuf(ELEVATOR_BUFF_STRU *src,uint8_t *desc);
 
 /*----------------------------------------------*
  * 常量定义                                     *
@@ -95,63 +94,60 @@ void CreateCommTask(void)
 static void vTaskComm(void *pvParameters)
 {
     TickType_t xLastWakeTime;
-    ELEVATOR_BUFF_STRU *sendBuf = &gElevtorData;
-
-//	//改为0A是，默认只去-2楼和1楼
-//    uint8_t defaultBuff[MAX_RS485_LEN+1] = { 0x5A,0x01,0x0A,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x51 };
-//	//改为1F是，默认只去2,1,-2,-3 都不控制
-      uint8_t defaultBuff[MAX_RS485_LEN+1] = { 0x5A,0x01,0x1B,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x40 };
-//    uint8_t defaultBuff[MAX_RS485_LEN+1] = { 0x5A,0x01,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x5A };
-//    uint8_t defaultBuff[MAX_RS485_LEN+1] = { 0x5A,0x01,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x53 };
-//    uint8_t defaultBuff[MAX_RS485_LEN+1] = {"AA5555555555555555555555555555555BB\r\n"};
+    ELEVATOR_BUFF_STRU *sendBuf = &gRecvElevtorData;
 
     uint32_t i = 0;
+    uint8_t buf[32] = {0};
+    uint16_t bufLen = 0;
     
-    READER_BUFF_STRU *ptMsg  = &gReaderMsg;
     BaseType_t xReturn = pdTRUE;/* 定义一个创建信息返回值，默认为pdPASS */
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(4); /* 设置最大等待时间为200ms */  
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000); /* 设置最大等待时间为200ms */  
+
+    sendBuf->devSn = 0;
+    sendBuf->value = 0;
     
-    //获取当前设备的ID
-    uint16_t readID = 0x01;//bsp_dipswitch_read();    
-
-    memset(&gReaderMsg,0x00,sizeof(READER_BUFF_STRU));    
-
-    /* 清零 */
-    ptMsg->authMode = 0; //默认为刷卡
-    ptMsg->dataLen = 0;
-    memset(ptMsg->data,0x00,sizeof(ptMsg->data));
-    memset(sendBuf->data,0x00,sizeof(sendBuf->data));   
-
     xLastWakeTime = xTaskGetTickCount();
-
-    memset(&rxFromHost,0x00,sizeof(rxFromHost));
     
     while (1)
-    {  
-        if(deal_Serial_Parse() == FINISHED)
-        {
-            xReturn = xQueueReceive( xTransDataQueue,    /* 消息队列的句柄 */
-                                     (void *)&sendBuf,  /*这里获取的是结构体的地址 */
-                                     0); /* 设置阻塞时间 */
-            if(pdTRUE == xReturn)
-            {
-                //消息接收成功，发送接收到的消息
-                dbh("sendBuf->data", sendBuf->data, MAX_RS485_LEN);
-            }
-            else
-            {
-                //发送默认数据包
-                memcpy(sendBuf->data,defaultBuff,MAX_RS485_LEN);
-            }
+    {
 
-            RS485_SendBuf(COM6,sendBuf->data,MAX_RS485_LEN); 
+            if(deal_Serial_Parse() == FINISHED)
+            { 
+                log_d("recv extend return data\r\n");
+            }        
+         vTaskDelay(20); 
+    #if 0
+        sendBuf->devSn = 0;
+        sendBuf->value = 0;
+  
+        xReturn = xQueueReceive( xTransDataQueue,    /* 消息队列的句柄 */
+                                 (void *)&sendBuf,  /*这里获取的是结构体的地址 */
+                                 xMaxBlockTime); /* 设置阻塞时间 */
+        if(pdTRUE == xReturn)
+        {
+            //消息接收成功，发送接收到的消息
+            
+            bufLen = packetBuf(sendBuf,buf);
+            RS485_SendBuf(COM6,buf,bufLen); 
+            
+            dbh("send com6 buff", buf, bufLen);
+            
+            vTaskDelay(200); 
+
+            if(deal_Serial_Parse() == FINISHED)
+            { 
+                log_d("recv extend return data\r\n");
+            }        
+        }
+        else
+        {
+           vTaskDelay(20); 
         }
 
+  #endif       
 
 		/* 发送事件标志，表示任务正常运行 */        
 		xEventGroupSetBits(xCreatedEventGroup, TASK_BIT_1);  
-//        vTaskDelay(10);
-        vTaskDelayUntil(&xLastWakeTime, 2);  
     }
 
 }
@@ -159,27 +155,30 @@ static void vTaskComm(void *pvParameters)
 static uint8_t deal_Serial_Parse(void)
 {
     uint8_t ch = 0;
+    uint8_t devID = 0;
+
     
     while(RS485_Recv(COM6,&ch,1))
     {
        switch (rxFromHost.rxStatus)
         {                
             case STEP1:
-                if(0x5A == ch) /*接收包头*/
+                if(0xA6 == ch) /*接收包头*/
                 {
-                    rxFromHost.rxBuff[0] = ch;
-                    rxFromHost.rxCRC = ch;
-                    rxFromHost.rxCnt = 1;
-                    rxFromHost.rxStatus = STEP2;
+                    rxFromHost.rxBuff[rxFromHost.rxCnt++] = ch;
+                    rxFromHost.rxCRC ^= ch;
+                    if(rxFromHost.rxCnt==3)
+                        rxFromHost.rxStatus = STEP2;
                 }
 
                 break;
            case STEP2:
-                if(0x01 == ch) //判定第二个字节是否是需要的字节，若多梯联动时需读取拨码开关的值
+                devID = (bsp_dipswitch_read() & 0x03)+1;
+
+                if(devID == ch) //判定第二个字节是否是当前设备ID，读取拨码开关的值
                 {
-                    rxFromHost.rxBuff[1] = ch;
-                    rxFromHost.rxCRC ^= ch;
-                    rxFromHost.rxCnt = 2;
+                    rxFromHost.rxBuff[rxFromHost.rxCnt++] = ch;
+                    rxFromHost.rxCRC ^= ch;               
                     rxFromHost.rxStatus = STEP3;                
                 }
                 else
@@ -189,19 +188,22 @@ static uint8_t deal_Serial_Parse(void)
                 break;           
             default:      /* 接收整个数据包 */
             
-                rxFromHost.rxBuff[rxFromHost.rxCnt++] = ch;
-                rxFromHost.rxCRC ^= ch;
+                rxFromHost.rxBuff[rxFromHost.rxCnt++] = ch;  
                 
-                if(rxFromHost.rxCnt >= 5)
+                if(rxFromHost.rxCnt == 8)
                 {
                 
-                    if(rxFromHost.rxCRC == 0)
+                    if(rxFromHost.rxCRC == rxFromHost.rxBuff[rxFromHost.rxCnt-1])
                     { 
                         memset(&rxFromHost,0x00,sizeof(FROMHOST_STRU));
                         return FINISHED;                         
                     }  
                     memset(&rxFromHost,0x00,sizeof(FROMHOST_STRU));
-                } 
+                }
+                else
+                {
+                     rxFromHost.rxCRC ^= ch;
+                }
              
                 break;
          }
@@ -209,6 +211,27 @@ static uint8_t deal_Serial_Parse(void)
     }   
 
     return UNFINISHED;
+}
+
+
+uint16_t packetBuf(ELEVATOR_BUFF_STRU *src,uint8_t *desc)
+{
+    uint8_t buf[32] = {0};
+    uint16_t len = 0;
+
+    buf[len++] = 0xA6;
+    buf[len++] = 0xA6;
+    buf[len++] = 0xA6;
+    buf[len++] = src->devSn;
+    buf[len++] = 0x03;    
+    buf[len++] = 0xA1;
+    buf[len++] = src->value/256;//高8位
+    buf[len++] = src->value%256;//低8位
+    buf[len++] = xorCRC(buf,8);
+
+    memcpy(desc,buf,len);
+
+    return len;    
 }
 
 

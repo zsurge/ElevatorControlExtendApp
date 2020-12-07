@@ -111,8 +111,11 @@ static void vTaskKey(void *pvParameters)
 
 //                    bsp_ds1302_mdifytime("2020-01-17 09:24:15");
                     log_d("read gpio0 = %d\r\n",bsp_dipswitch_read()); 
-                    log_d("read gpio1 = %d\r\n",((bsp_dipswitch_read() & 0x01) +1)); //第1位用来表示机器ID                
-                    log_d("read gpio2 = %d\r\n",(((bsp_dipswitch_read()>>1) & 0x07)));//第2，3，4用来补偿负楼层
+//                    log_d("read gpio1 = %d\r\n",((bsp_dipswitch_read() & 0x01) +1)); //第1位用来表示机器ID                
+//                    log_d("read gpio2 = %d\r\n",(((bsp_dipswitch_read()>>1) & 0x07)));//第2，3，4用来补偿负楼层
+                    log_d("read gpio1 = %d\r\n",((bsp_dipswitch_read() & 0x03) +1)); //第1位用来表示机器ID 
+                    log_d("read gpio2 = %d\r\n",(((bsp_dipswitch_read()>>2) & 0x03)));//第2，3，4用来补偿负楼层
+                    
                     
 //                      searchHeadTest("24450854");
 //                    farm_test();

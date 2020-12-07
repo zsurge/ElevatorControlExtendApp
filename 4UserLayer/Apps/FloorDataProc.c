@@ -46,25 +46,14 @@
  * 内部函数原型说明                             *
  *----------------------------------------------*/
 static SYSERRORCODE_E packetToElevator(USERDATA_STRU *localUserData);
-static void calcFloor(uint8_t layer,uint8_t regMode,uint8_t *src,uint8_t *outFloor);
+//static void calcFloor(uint8_t layer);
+void sendQueueToDev(ELEVATOR_BUFF_STRU *devSendData);
+static void calcFloor(uint8_t layer,ELEVATOR_BUFF_STRU *devSendData);
+
 static SYSERRORCODE_E authReader(READER_BUFF_STRU *pQueue,USERDATA_STRU *localUserData);
 static SYSERRORCODE_E packetRemoteRequestToElevator(uint8_t *tagFloor,uint8_t len);
 
-static ELEVATOR_BUFF_STRU  gtmpElevtorData;
-
-
-
-void packetDefaultSendBuf(uint8_t *buf)
-{
-    uint8_t sendBuf[64] = {0};
-
-    sendBuf[0] = CMD_STX;
-    sendBuf[1] = 0x01;//bsp_dipswitch_read();
-    sendBuf[2] = 0x01;//bsp_dipswitch_read();
-    sendBuf[MAX_SEND_LEN-1] = xorCRC(sendBuf,MAX_SEND_LEN-2);
-
-    memcpy(buf,sendBuf,MAX_SEND_LEN);
-}
+static SYSERRORCODE_E packetToElevatorExtend(USERDATA_STRU *localUserData);//add 1204
 
 
 void packetSendBuf(READER_BUFF_STRU *pQueue)
@@ -96,7 +85,8 @@ void packetSendBuf(READER_BUFF_STRU *pQueue)
             }
 
             //1.发给电梯的数据
-            ret = packetToElevator(localUserData);
+//            ret = packetToElevator(localUserData);
+            ret = packetToElevatorExtend(localUserData);
             if(ret != NO_ERR)
             {
                 log_d("invalid floor\r\n");
@@ -280,67 +270,174 @@ SYSERRORCODE_E authRemote(READER_BUFF_STRU *pQueue,USERDATA_STRU *localUserData)
 
 }
 
-static SYSERRORCODE_E packetToElevator(USERDATA_STRU *localUserData)
+
+void sendQueueToDev(ELEVATOR_BUFF_STRU *devSendData)
+{
+    /* 使用消息队列实现指针变量的传递 */
+    if(xQueueSend(xTransDataQueue,              /* 消息队列句柄 */
+               (void *) &devSendData,   /* 发送指针变量recv_buf的地址 */
+               (TickType_t)1000) != pdPASS )
+    {
+        log_d("the queue is full!\r\n");                
+        xQueueReset(xTransDataQueue);
+    } 
+    else
+    {
+        log_d("devSendData->value = %d,devSendData->devSn = %d\r\n",devSendData->value,devSendData->devSn);        
+    }
+
+}
+
+static SYSERRORCODE_E packetRemoteRequestToElevator(uint8_t *tagFloor,uint8_t len)
 {
     SYSERRORCODE_E result = NO_ERR;
-    uint8_t tmpBuf[MAX_SEND_LEN+1] = {0};
-    char authLayer[64] = {0}; //权限楼层，最多64层
-    int num = 0;    
-    uint8_t sendBuf[MAX_SEND_LEN+1] = {0};
+
+    uint8_t floor = 0;
+    uint8_t i = 0; 
     
     ELEVATOR_BUFF_STRU *devSendData = &gElevtorData;
-	
-    uint8_t allBuff[MAX_SEND_LEN] = { 0x5A,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x5B };
+    devSendData->devSn = 0;
+    devSendData->value = 0;
+    
+    
+    if(len > 1)//多层权限，手动
+    {
+        for(i=0;i<len;i++)
+        {
+            log_d("current floor = %d\r\n",tagFloor[i]);
+            calcFloor(tagFloor[i],devSendData);  
+//            sendQueueToDev(devSendData);
+        }  
+    }
+    else    //单层权限，直接呼默认权限楼层，自动
+    {        
+        floor = tagFloor[0]; 
+        
+        if(floor == 0)
+        {
+            return INVALID_FLOOR;//无效的楼层
+        }
+        
+        calcFloor(floor,devSendData);   
+        
+//        sendQueueToDev(devSendData);
+    }  
+
+    return result;
+
+}
+
+
+
+
+static void calcFloor(uint8_t layer,ELEVATOR_BUFF_STRU *devSendData)
+{
+
+    uint16_t floor = 0; //这里是因为有地下三层
+    uint16_t tmpFloor = 0;
+    uint16_t index = 0;
+
+    uint8_t buf[32] = {0};
+    uint16_t bufLen = 0;
+    
+//    ELEVATOR_BUFF_STRU *devSendData = &gElevtorData;
+
+//    devSendData->devSn = 0;
+//    devSendData->value = 0;
+    
+//    floor = layer + (bsp_dipswitch_read()>>2) & 0x03;
+    floor = layer ;
+
+    
+    #if 0
+    if(layer > MAX_FLOOR)
+    {
+        floor = layer-MAX_FLOOR;
+    }
+    else
+    {
+        //根据拨码开关，来判定补多少动
+        //如果是-3层，即补3，是-5层，即补5
+//        floor = layer + ((bsp_dipswitch_read()>>1) & 0x07);    
+        floor = layer + (bsp_dipswitch_read()>>2) & 0x03;
+    }
+    #endif
+
+//    log_d("before calculation floor = %d,after calculation floor =%d\r\n",layer,floor);
+
+//((bsp_dipswitch_read() & 0x01) +1); //第1位用来表示机器ID                
+//(((bsp_dipswitch_read()>>1) & 0x07));//第2，3，4用来补偿负楼层
+
+    if(floor > 0 && floor<=16)
+    {
+        devSendData->devSn = 1;
+        devSendData->value = setbit(0,floor-1);
+    }
+    else if(floor >=17 && floor<=32)
+    {
+        devSendData->devSn = 2;
+        devSendData->value = setbit(0,floor-17);    
+    }
+    else if(floor >=33 && floor<=48)
+    {
+        devSendData->devSn = 3;
+        devSendData->value = setbit(0,floor-33);    
+    }
+    else if(floor >=49 && floor<=64)
+    {
+        devSendData->devSn = 4;
+        devSendData->value = setbit(0,floor-49);    
+    }
+
+    bufLen = packetBuf(devSendData,buf);
+    
+    RS485_SendBuf(COM6,buf,bufLen); 
+
+     vTaskDelay(20); 
+//    /* 使用消息队列实现指针变量的传递 */
+//    if(xQueueSend(xTransDataQueue,              /* 消息队列句柄 */
+//    			 (void *) &devSendData,   /* 发送指针变量recv_buf的地址 */
+//    			 (TickType_t)1000) != pdPASS )
+//    {
+//        log_d("the queue is full!\r\n");                
+//        xQueueReset(xTransDataQueue);
+//    } 
+//    else
+//    {
+//        log_d("devSendData->value = %d,devSendData->devSn = %d\r\n",devSendData->value,devSendData->devSn);        
+//    }
+}
+
+
+static SYSERRORCODE_E packetToElevatorExtend(USERDATA_STRU *localUserData)
+{
+    SYSERRORCODE_E result = NO_ERR;
+    char authLayer[64] = {0}; //权限楼层，最多64层
+    int num = 0;    
 
     uint8_t floor = 0;
 
-    uint8_t i = 0;
+    uint8_t i = 0;  
 
+    ELEVATOR_BUFF_STRU *devSendData = &gElevtorData;
+    devSendData->devSn = 0;
+    devSendData->value = 0;
     
-//    log_d("localUserData->cardNo = %s\r\n",localUserData->cardNo);
-//    log_d("localUserData->userId = %s\r\n",localUserData->userId);
-//    dbh("localUserData->accessLayer",localUserData->accessFloor,sizeof(localUserData->accessFloor));
-//    log_d("localUserData->defaultLayer = %d\r\n",localUserData->defaultFloor);    
-//    log_d("localUserData->startTime = %s\r\n",localUserData->startTime);        
-//    log_d("localUserData->endTime = %s\r\n",localUserData->endTime);        
-//    log_d("localUserData->authMode = %d\r\n",localUserData->authMode);   
 
     memcpy(authLayer,localUserData->accessFloor,FLOOR_ARRAY_LEN);
+    
     num = strlen((const char*)authLayer);
 
     log_d("localUserData->accessFloor num = %d\r\n",num);
-    
-    memset(sendBuf,0x00,sizeof(sendBuf));
 
-	if(num >= 23)
-	{
-		dbh("send multiple", (char *)allBuff, MAX_SEND_LEN);
-		memcpy(devSendData->data,allBuff,MAX_SEND_LEN);
-		
-		for(i = 0 ;i<10;i++)
-		{
-			/* 使用消息队列实现指针变量的传递 */
-			if(xQueueSend(xTransDataQueue,				/* 消息队列句柄 */
-						 (void *) &devSendData,   /* 发送指针变量recv_buf的地址 */
-						 (TickType_t)10) != pdPASS )
-			{
-				log_d("the queue is full!\r\n");				
-				xQueueReset(xTransDataQueue);
-			} 
-		   
-		}	
-		
-		return result;
-	}
     
     if(num > 1)//多层权限，手动
     {
         for(i=0;i<num;i++)
         {
-            log_d("current floor = %d\r\n",authLayer[i]);
-            calcFloor(authLayer[i],MANUAL_REG,sendBuf,tmpBuf);  
-            memcpy(sendBuf,tmpBuf,MAX_SEND_LEN);
-        }        
+            calcFloor(authLayer[i],devSendData);  
+//            sendQueueToDev(devSendData);
+        }    
     }
     else    //单层权限，直接呼默认权限楼层，自动
     {
@@ -358,202 +455,16 @@ static SYSERRORCODE_E packetToElevator(USERDATA_STRU *localUserData)
 	        return INVALID_FLOOR;//无效的楼层
 	    }
 		
-        calcFloor(floor,AUTO_REG,sendBuf,tmpBuf);            
+        calcFloor(floor,devSendData);   
+        
+//        sendQueueToDev(devSendData);
     }   
 
-    memset(sendBuf,0x00,sizeof(sendBuf));
-    
-    sendBuf[0] = CMD_STX;
-    sendBuf[1] = 0x01;//bsp_dipswitch_read();
-    memcpy(sendBuf+2,tmpBuf,MAX_SEND_LEN-5);
-    
-    sendBuf[MAX_SEND_LEN-1] = xorCRC(sendBuf,MAX_SEND_LEN-2);  
-    
-    memcpy(devSendData->data,sendBuf,MAX_SEND_LEN);
-    
-//    dbh("send single1", (char *)devSendData->data, MAX_SEND_LEN);
 
-    for(i = 0 ;i<7;i++)
-    {
-        /* 使用消息队列实现指针变量的传递 */
-        if(xQueueSend(xTransDataQueue,              /* 消息队列句柄 */
-        			 (void *) &devSendData,   /* 发送指针变量recv_buf的地址 */
-        			 (TickType_t)10) != pdPASS )
-        {
-            log_d("the queue is full!\r\n");                
-            xQueueReset(xTransDataQueue);
-        } 
-       
-    }
+
+    log_d("@@@@@@@@@@@@@@@@@@@@@@@@@\r\n");
     return result;
 }
-
-
-static SYSERRORCODE_E packetRemoteRequestToElevator(uint8_t *tagFloor,uint8_t len)
-{
-    SYSERRORCODE_E result = NO_ERR;
-    uint8_t tmpBuf[MAX_SEND_LEN+1] = {0};
-    uint8_t sendBuf[MAX_SEND_LEN+1] = {0};
-    
-    ELEVATOR_BUFF_STRU *devSendData = &gElevtorData;
-    
-    uint8_t allBuff[MAX_SEND_LEN] = { 0x5A,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x5B };
-
-    uint8_t floor = 0;
-
-    uint8_t i = 0; 
-
-    if(len >= 25)
-    {
-        dbh("send multiple", (char *)allBuff, MAX_SEND_LEN);
-        memcpy(devSendData->data,allBuff,MAX_SEND_LEN);
-        
-        for(i = 0 ;i<10;i++)
-        {
-            /* 使用消息队列实现指针变量的传递 */
-            if(xQueueSend(xTransDataQueue,              /* 消息队列句柄 */
-                         (void *) &devSendData,   /* 发送指针变量recv_buf的地址 */
-                         (TickType_t)10) != pdPASS )
-            {
-                log_d("the queue is full!\r\n");                
-                xQueueReset(xTransDataQueue);
-            } 
-           
-        }   
-        
-        return result;
-    }
-    
-    if(len > 1)//多层权限，手动
-    {
-        for(i=0;i<len;i++)
-        {
-            log_d("current floor = %d\r\n",tagFloor[i]);
-            calcFloor(tagFloor[i],MANUAL_REG,sendBuf,tmpBuf);  
-            memcpy(sendBuf,tmpBuf,MAX_SEND_LEN);
-        }        
-    }
-    else    //单层权限，直接呼默认权限楼层，自动
-    {        
-        floor = tagFloor[0];  
-
-//        log_e("1 floor = %d\r\n",floor);
-        
-        if(floor == 0)
-        {
-            return INVALID_FLOOR;//无效的楼层
-        }
-        
-        calcFloor(floor,AUTO_REG,sendBuf,tmpBuf);            
-    }   
-
-    memset(sendBuf,0x00,sizeof(sendBuf));
-    
-    sendBuf[0] = CMD_STX;
-    sendBuf[1] = 0x01;//bsp_dipswitch_read();
-    memcpy(sendBuf+2,tmpBuf,MAX_SEND_LEN-5);
-    
-    sendBuf[MAX_SEND_LEN-1] = xorCRC(sendBuf,MAX_SEND_LEN-2);  
-    
-    memcpy(devSendData->data,sendBuf,MAX_SEND_LEN);
-    
-
-    for(i = 0 ;i<8;i++)
-    {
-        /* 使用消息队列实现指针变量的传递 */
-        if(xQueueSend(xTransDataQueue,              /* 消息队列句柄 */
-                     (void *) &devSendData,   /* 发送指针变量recv_buf的地址 */
-                     (TickType_t)10) != pdPASS )
-        {
-            log_d("the queue is full!\r\n");                
-            xQueueReset(xTransDataQueue);
-        } 
-       
-    }
-    return result;
-}
-
-
-
-
-static void calcFloor(uint8_t layer,uint8_t regMode,uint8_t *src,uint8_t *outFloor)
-{
-    uint8_t div = 0;
-    uint8_t remainder = 0;
-    uint8_t floor = 0; //这里是因为有地下三层
-    uint8_t sendBuf[MAX_SEND_LEN+1] = {0};
-    uint8_t tmpFloor = 0;
-    uint8_t index = 0;
-    
-    memcpy(sendBuf,src,MAX_SEND_LEN);
-
-//    dbh("before", sendBuf, MAX_SEND_LEN);
-
-    if(layer > MAX_FLOOR)
-    {
-        floor = layer-MAX_FLOOR;
-    }
-    else
-    {
-        //根据拨码开关，来判定补多少动
-        //如果是-3层，即补3，是-5层，即补5
-        floor = layer + ((bsp_dipswitch_read()>>1) & 0x07);        
-    }
-
-    log_d("<<<<< floor = %d >>>>>\r\n",floor);
-
-//    if(layer == 253)
-//    {
-//        floor = 1;
-//    }
-//    else if(layer == 254)
-//    {
-//        floor = 2;
-//    }
-//    else if(layer == 255)
-//    {
-//        floor = 3;
-//    }
-//    else
-//    {
-//        //根据拨码开关，来判定补多少动
-//        //如果是-3层，即补3，是-5层，即补5
-//        floor = layer + ((bsp_dipswitch_read()>>1) & 0x07);
-//    }
-
-//((bsp_dipswitch_read() & 0x01) +1); //第1位用来表示机器ID                
-//(((bsp_dipswitch_read()>>1) & 0x07));//第2，3，4用来补偿负楼层
-    
-        
-    div = floor / 8;
-    remainder = floor % 8;
-
-    if(regMode == AUTO_REG)
-    {
-        index = div + 8;
-    }
-    else
-    {
-        index = div;
-    }
-
-    log_d("div = %d,remain = %d\r\n",div,remainder);
-    
-
-    if(div != 0 && remainder == 0)// 8,16,24
-    {       
-        sendBuf[index-1] = setbit(sendBuf[index-1],8-1);
-    } 
-    else //1~7层和非8层的倍数
-    {
-        sendBuf[index] = setbit(sendBuf[index],remainder-1);
-    }
-
-    memcpy(outFloor,sendBuf,MAX_SEND_LEN);
-
-//    dbh("after", sendBuf, MAX_SEND_LEN);
-}
-
 
 
 
