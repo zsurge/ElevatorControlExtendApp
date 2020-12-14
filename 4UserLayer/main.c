@@ -130,7 +130,7 @@ static void AppTaskCreate (void)
     CreateMqttTask();
 
     //看门狗
-//    CreateWatchDogTask();
+    CreateWatchDogTask();
 
     //删除本身
     vTaskDelete(xHandleTaskAppCreate); //删除AppTaskCreate任务
@@ -172,7 +172,6 @@ static void AppObjCreate (void)
     }    
 
     //创消息队列，存放刷卡及二维码数据
-
     xDataProcessQueue = xQueueCreate((UBaseType_t ) QUEUE_LEN,/* 消息队列的长度 */
                               (UBaseType_t ) sizeof(READER_BUFF_STRU *));/* 消息的大小 */
     if(xDataProcessQueue == NULL)
@@ -181,13 +180,18 @@ static void AppObjCreate (void)
     }
     
     
-    xTransDataQueue = xQueueCreate((UBaseType_t ) 30,/* 消息队列的长度 */
-                              (UBaseType_t ) sizeof(ELEVATOR_BUFF_STRU *));/* 消息的大小 */
+//    xTransDataQueue = xQueueCreate((UBaseType_t ) 10,/* 消息队列的长度 */
+//                              (UBaseType_t ) sizeof(ELEVATOR_TRANBUFF_STRU *));/* 消息的大小 */
+
+    xTransDataQueue = xQueueCreate((UBaseType_t ) 10,/* 消息队列的长度 */
+                              (UBaseType_t )8);/* 消息的大小 */
+                              
     if(xTransDataQueue == NULL)
     {
         App_Printf("创建 xTransDataQueue 消息队列失败!\r\n");
     }
-   
+
+    App_Printf("len = %d,   =%d\r\n",(UBaseType_t ) sizeof(ELEVATOR_TRANBUFF_STRU ),(UBaseType_t ) sizeof(ELEVATOR_TRANBUFF_STRU *));
 
     /*  创建 CountSem */
     CountSem_Handle = xSemaphoreCreateCounting(2,2);

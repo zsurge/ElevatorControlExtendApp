@@ -177,7 +177,7 @@ typedef struct USERDATA
 }USERDATA_STRU;
 #pragma pack()
 
-extern USERDATA_STRU gUserDataStru;
+//extern USERDATA_STRU gUserDataStru;
 
 /*
 typedef struct USERSTATE

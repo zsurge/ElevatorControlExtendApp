@@ -64,7 +64,7 @@ int	gMySock = 0;
 uint8_t gUpdateDevSn = 0; 
 
 
-ELEVATOR_BUFF_STRU gElevtorData,gRecvElevtorData;
+
 
 READER_BUFF_STRU gReaderMsg;
 
@@ -1169,6 +1169,7 @@ static SYSERRORCODE_E RemoteOptDev ( uint8_t* msgBuf )
     log_d("3005 = >> %s\r\n",msgBuf);
 
     log_d("%d,%d\r\n",gtemplateParam.templateCallingWay.isFace,gDevBaseParam.deviceState.iFlag);
+    
     if(gDevBaseParam.deviceState.iFlag == DEVICE_ENABLE)
 //    if(gtemplateParam.templateCallingWay.isFace && gDevBaseParam.deviceState.iFlag == DEVICE_ENABLE)
     {

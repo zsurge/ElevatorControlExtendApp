@@ -65,17 +65,10 @@ typedef struct
 #pragma pack()
 
 
-typedef struct
-{
-   uint8_t devSn;
-   uint8_t value;
-}ELEVATOR_BUFF_STRU;
-
-
 
 
 extern READER_BUFF_STRU gReaderMsg;
-extern ELEVATOR_BUFF_STRU gElevtorData,gRecvElevtorData;
+
 
 
 extern int gConnectStatus;

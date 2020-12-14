@@ -41,9 +41,19 @@
 /*----------------------------------------------*
  * 宏定义                                       *
  *----------------------------------------------*/
-#define MAX_CMD_LEN 5
-#define MAX_SEND_LEN 37
-#define CMD_STX     0x5A
+#define MAX_DEV_NO 4
+ 
+typedef struct
+{
+   uint8_t devSn;  
+   uint32_t value;
+}ELEVATOR_TRANBUFF_STRU;
+
+typedef struct
+{
+    ELEVATOR_TRANBUFF_STRU data[MAX_DEV_NO];
+}ELEVATOR_BUFF_STRU;
+
 
 
 /*----------------------------------------------*
@@ -59,11 +69,15 @@
  * 内部函数原型说明                             *
  *----------------------------------------------*/
 
-void packetSendBuf(READER_BUFF_STRU *pQueue);
+extern ELEVATOR_TRANBUFF_STRU gElevtorData,gRecvElevtorData;
 
 
-SYSERRORCODE_E authRemote(READER_BUFF_STRU *pQueue,USERDATA_STRU *localUserData);
 
+SYSERRORCODE_E packetToElevatorExtend(USERDATA_STRU *localUserData,ELEVATOR_BUFF_STRU *devSendData);//add 1204
+
+SYSERRORCODE_E calcSingleFloor(uint8_t floor,ELEVATOR_BUFF_STRU *eBuf);
+SYSERRORCODE_E calcMultilFloor(uint8_t *floorBuf,uint8_t num,ELEVATOR_BUFF_STRU *eBuf);
+void sendQueueToDev(ELEVATOR_TRANBUFF_STRU *devSendData);
 
 
 #endif

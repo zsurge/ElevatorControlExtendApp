@@ -36,7 +36,7 @@
 /*----------------------------------------------*
  * 宏定义                                       *
  *----------------------------------------------*/
-#define MAX_RS485_LEN 37
+
 #define UNFINISHED		        	    0x00
 #define FINISHED          	 			0x55
 
@@ -59,7 +59,7 @@ typedef struct FROMHOST
 #define COMM_TASK_PRIO		(tskIDLE_PRIORITY + 6) 
 #define COMM_STK_SIZE 		(configMINIMAL_STACK_SIZE*4)
 
-uint16_t packetBuf(ELEVATOR_BUFF_STRU *src,uint8_t *desc);
+uint16_t packetBuf(ELEVATOR_TRANBUFF_STRU *src,uint8_t *desc);
 
 /*----------------------------------------------*
  * 常量定义                                     *
@@ -94,57 +94,50 @@ void CreateCommTask(void)
 static void vTaskComm(void *pvParameters)
 {
     TickType_t xLastWakeTime;
-    ELEVATOR_BUFF_STRU *sendBuf = &gRecvElevtorData;
+    ELEVATOR_TRANBUFF_STRU *recvBuf = &gRecvElevtorData;
 
     uint32_t i = 0;
     uint8_t buf[32] = {0};
     uint16_t bufLen = 0;
     
     BaseType_t xReturn = pdTRUE;/* 定义一个创建信息返回值，默认为pdPASS */
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000); /* 设置最大等待时间为200ms */  
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(100); /* 设置最大等待时间为200ms */  
 
-    sendBuf->devSn = 0;
-    sendBuf->value = 0;
-    
     xLastWakeTime = xTaskGetTickCount();
     
     while (1)
     {
-
-            if(deal_Serial_Parse() == FINISHED)
-            { 
-                log_d("recv extend return data\r\n");
-            }        
-         vTaskDelay(20); 
-    #if 0
-        sendBuf->devSn = 0;
-        sendBuf->value = 0;
+        memset(&gRecvElevtorData,0x00,sizeof(gRecvElevtorData));
+        
+        if(deal_Serial_Parse() == FINISHED)
+        { 
+            log_d("recv extend return data\r\n");
+        }       
+       
   
         xReturn = xQueueReceive( xTransDataQueue,    /* 消息队列的句柄 */
-                                 (void *)&sendBuf,  /*这里获取的是结构体的地址 */
+                                 (void *)recvBuf,  /*这里获取的是结构体的地址 */
                                  xMaxBlockTime); /* 设置阻塞时间 */
         if(pdTRUE == xReturn)
         {
             //消息接收成功，发送接收到的消息
+
+            log_d("recv queue value = %x,devsn=%d\r\n",recvBuf->value,recvBuf->devSn);
             
-            bufLen = packetBuf(sendBuf,buf);
-            RS485_SendBuf(COM6,buf,bufLen); 
+            bufLen = packetBuf(recvBuf ,buf);
+            RS485_SendBuf(COM6,buf,bufLen);   
             
             dbh("send com6 buff", buf, bufLen);
             
-            vTaskDelay(200); 
+            vTaskDelay(100); 
 
             if(deal_Serial_Parse() == FINISHED)
             { 
                 log_d("recv extend return data\r\n");
             }        
         }
-        else
-        {
-           vTaskDelay(20); 
-        }
 
-  #endif       
+  
 
 		/* 发送事件标志，表示任务正常运行 */        
 		xEventGroupSetBits(xCreatedEventGroup, TASK_BIT_1);  
@@ -214,7 +207,7 @@ static uint8_t deal_Serial_Parse(void)
 }
 
 
-uint16_t packetBuf(ELEVATOR_BUFF_STRU *src,uint8_t *desc)
+uint16_t packetBuf(ELEVATOR_TRANBUFF_STRU *src,uint8_t *desc)
 {
     uint8_t buf[32] = {0};
     uint16_t len = 0;

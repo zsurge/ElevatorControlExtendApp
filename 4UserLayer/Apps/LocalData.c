@@ -53,7 +53,7 @@
 //volatile uint16_t gDelCardHeaderIndex = 0;    //已删除卡号索引
 //volatile uint16_t gDelUserHeaderIndex = 0;    //已删除用户ID索引
 
-USERDATA_STRU gUserDataStru = {0};
+//USERDATA_STRU gUserDataStru = {0};
 
 
 /*----------------------------------------------*
