@@ -55,6 +55,7 @@
 
 //USERDATA_STRU gUserDataStru = {0};
 
+HEADINFO_STRU gSectorBuff[512] = {0};
 
 /*----------------------------------------------*
  * 内部函数原型说明                             *
@@ -110,11 +111,6 @@ uint32_t readDelIndexValue ( uint8_t mode,uint16_t curIndex )
 }
 
 
-
-
-
-
-
 void eraseUserDataAll ( void )
 {
 	int32_t iTime1, iTime2;
@@ -161,6 +157,8 @@ uint8_t writeUserData ( USERDATA_STRU *userData,uint8_t mode )
 	uint32_t addr = 0;
 	uint32_t index = 0;
     uint8_t head[8] = {0};
+    int tmpIndex = 0;
+	HEADINFO_STRU tmpHead;
 
 	int32_t iTime1, iTime2;
 
@@ -182,6 +180,15 @@ uint8_t writeUserData ( USERDATA_STRU *userData,uint8_t mode )
 	{
 	    asc2bcd ( head, userData->userId,CARD_NO_LEN_ASC, 1 );		
 	}	
+
+    memcpy(tmpHead.headData.sn,head,CARD_NO_LEN_BCD);
+    tmpIndex = readHead(&tmpHead,mode);
+
+    //卡号或者是USERID已存在
+    if(tmpIndex != NO_FIND_HEAD)
+    {
+        return 4;
+    }
 
     //写表头
 	addHead(head,mode);
@@ -748,7 +755,6 @@ void TestFlash ( uint8_t mode )
 		FRAM_Read ( FM24V10_1, addr+i*sizeof ( HEADINFO_STRU ), &tmp, sizeof ( HEADINFO_STRU ) );
 		log_d("the %d card id = %x,the flash addr = %d\r\n",i,tmp.headData.id,tmp.flashAddr);
 
-
 	}
 
 	for ( i=0; i<num; i++ )
@@ -851,7 +857,7 @@ int readHead(HEADINFO_STRU *head,uint8_t mode)
         {
             //直接返回当前目标值的FLASH索引
             iTime2 = xTaskGetTickCount();   /* 记下结束时间 */
-            log_d ( "find it，use %d ms\r\n",iTime2 - iTime1);              
+            log_d ( "find it，use %d ms,flash addr = %d\r\n",iTime2 - iTime1,ret);              
             return ret;
         }
     }    
@@ -1015,6 +1021,8 @@ static int Bin_Search_addr(uint32_t startAddr,int numsSize,int target)
     return NO_FIND_HEAD;
 }
 
+
+
 void addHead(uint8_t *head,uint8_t mode)
 {
     uint8_t multiple = 0;
@@ -1024,20 +1032,9 @@ void addHead(uint8_t *head,uint8_t mode)
 	uint32_t curIndex = 0;
 	uint8_t i = 0;
 
-    int32_t iTime1, iTime2;
-	
-    //512个头，1页的空间
-    HEADINFO_STRU * sectorBuff = (HEADINFO_STRU*)mymalloc(SRAMIN,sizeof(HEADINFO_STRU)*HEAD_NUM_SECTOR);    
-
-
-    if(sectorBuff == NULL)
-    {
-        myfree(SRAMIN, sectorBuff);
-        log_e("create sectorBuff is error\r\n");
-        return;
-    }
-
-
+    int32_t iTime1, iTime2;	
+    HEADINFO_STRU rxCard;
+    
     
    iTime1 = xTaskGetTickCount();   /* 记下开始时间 */
    //1.先判定当前有多少个卡号;
@@ -1068,20 +1065,18 @@ void addHead(uint8_t *head,uint8_t mode)
     multiple = curIndex / HEAD_NUM_SECTOR;
     remainder = curIndex % HEAD_NUM_SECTOR;
 
-//    log_d("mode = %d,addr = %x,multiple = %d,remainder=%d\r\n",mode,addr,multiple,remainder);
-
+    memset(gSectorBuff,0x00,sizeof(gSectorBuff));
 
     //索引要从1开始    
     if(multiple==0 && remainder==0)
     {
-        //第一条记录
-        sectorBuff[0].flashAddr = curIndex;
-        memcpy(sectorBuff[0].headData.sn,head,CARD_NO_LEN_BCD);  
-
-//        log_d("add = %x,sectorBuff[0].headData.sn = %02x,%02x,%02x,%02x,addr = %d\r\n",addr,sectorBuff[0].headData.sn[0],sectorBuff[0].headData.sn[1],sectorBuff[0].headData.sn[2],sectorBuff[0].headData.sn[3],sectorBuff[0].flashAddr);
+        //第一条记录赋值
+        gSectorBuff[0].flashAddr = curIndex;
+        memcpy(gSectorBuff[0].headData.sn,head,CARD_NO_LEN_BCD);
+        
         
         //写入到存储区域
-        ret = FRAM_Write ( FM24V10_1, addr, sectorBuff,1 * sizeof(HEADINFO_STRU));
+        ret = FRAM_Write ( FM24V10_1, addr,  gSectorBuff,1 * sizeof(HEADINFO_STRU));
         
         if(ret == 0)
         {
@@ -1095,48 +1090,33 @@ void addHead(uint8_t *head,uint8_t mode)
         {
             addr += multiple * HEAD_NUM_SECTOR  * sizeof(HEADINFO_STRU);  
         }
-
+        
+        memset(gSectorBuff,0x00,sizeof(gSectorBuff));
+        
         //3.读取最后一页
-        ret = FRAM_Read (FM24V10_1, addr, sectorBuff, (remainder)* sizeof(HEADINFO_STRU));
+        ret = FRAM_Read (FM24V10_1, addr, gSectorBuff, (remainder)* sizeof(HEADINFO_STRU));
         if(ret == 0)
         {
             log_e("read fram error\r\n");
         }
-
-//        log_d("FRAM_Read SUCCESS addr = %d,remainder = %d\r\n",addr,remainder);
-        
-//        for(i=0;i<remainder;i++)
-//        {
-//            log_d("add = %d,id =%x,sn = %02x,%02x,%02x,%02x,flashAddr = %d\r\n",addr,sectorBuff[i].headData.id,sectorBuff[i].headData.sn[0],sectorBuff[i].headData.sn[1],sectorBuff[i].headData.sn[2],sectorBuff[i].headData.sn[3],sectorBuff[i].flashAddr);
-//        }        
         
         //4.赋值,追加需要添加的卡号到最后一个位置
-        sectorBuff[remainder].flashAddr = curIndex;
-        memcpy(sectorBuff[remainder].headData.sn,head,CARD_NO_LEN_BCD);
-        
-//        dbh("add head", sectorBuff[remainder].headData.sn, CARD_NO_LEN_BCD);  
+        gSectorBuff[remainder].flashAddr = curIndex;
+        memcpy(gSectorBuff[remainder].headData.sn,head,CARD_NO_LEN_BCD);
 
-        
-        //5.排序
-        sortHead(sectorBuff,remainder+1);
-
-//        log_d("<<<<<<<<<< >>>>>>>>>>\r\n");
-        
-//        for(i=0;i<remainder+1;i++)
-//        {
-//            log_d("add = %d,id =%x,sn =%02x,%02x,%02x,%02x,sectorBuff.flashAddr = %d\r\n",addr,sectorBuff[i].headData.id,sectorBuff[i].headData.sn[0],sectorBuff[i].headData.sn[1],sectorBuff[i].headData.sn[2],sectorBuff[i].headData.sn[3],sectorBuff[i].flashAddr);
-//        }
+       //5.排序
+        sortHead(gSectorBuff,remainder+1);
 
         //6.写入到存储区域
-        ret = FRAM_Write ( FM24V10_1, addr, sectorBuff,(remainder+1)* sizeof(HEADINFO_STRU));
+        ret = FRAM_Write ( FM24V10_1, addr, gSectorBuff,(remainder+1)* sizeof(HEADINFO_STRU));
         
         if(ret == 0)
         {
             log_e("write fram error\r\n");
-        }        
+        }          
+
     }
-
-
+    
 	if ( mode == CARD_MODE )
 	{
         gRecordIndex.cardNoIndex++;
@@ -1154,13 +1134,12 @@ void addHead(uint8_t *head,uint8_t mode)
         gRecordIndex.delUserIdIndex++;
 	}
 
-//    log_d("cardNoIndex = %d,userIdIndex = %d\r\n",gRecordIndex.cardNoIndex,gRecordIndex.userIdIndex);	
+    log_d("cardNoIndex = %d,userIdIndex = %d\r\n",gRecordIndex.cardNoIndex,gRecordIndex.userIdIndex);	
     optRecordIndex(&gRecordIndex,WRITE_PRARM);
 
 	iTime2 = xTaskGetTickCount();	/* 记下结束时间 */
 	log_e ( "add head成功，耗时: %dms\r\n",iTime2 - iTime1 );
 
-    myfree(SRAMIN,sectorBuff);
   
 }
 

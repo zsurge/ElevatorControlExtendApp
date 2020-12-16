@@ -64,13 +64,7 @@ typedef struct
 }READER_BUFF_STRU;
 #pragma pack()
 
-
-
-
 extern READER_BUFF_STRU gReaderMsg;
-
-
-
 extern int gConnectStatus;
 extern int gMySock;
 extern uint8_t gUpdateDevSn; 

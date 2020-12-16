@@ -155,6 +155,8 @@ typedef struct CARDHEADINFO
     uint32_t flashAddr; //在FLASH中的索引,其地址=索引*固定卡号内容长度+基地址 
 }HEADINFO_STRU;
 
+extern HEADINFO_STRU gSectorBuff[512];
+
 
 
 #pragma pack(1)
@@ -177,17 +179,6 @@ typedef struct USERDATA
 }USERDATA_STRU;
 #pragma pack()
 
-//extern USERDATA_STRU gUserDataStru;
-
-/*
-typedef struct USERSTATE
-{
-    uint8_t isInvalid;
-    uint8_t isValid;
-    uint8_t isTemporary;
-    uint8_t isBlackList;
-}USERSTATE_STRU;
-*/
 
 void eraseHeadSector(void);
 void eraseDataSector(void);

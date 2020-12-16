@@ -224,7 +224,7 @@ int mqttSendData(uint8_t *payload_out,uint16_t payload_out_len)
    { 
        topicString.cstring = gDevBaseParam.mqttTopic.publish;       //属性上报 发布
 
-       log_d("payloadlen = %d,payload = %s",payload_out_len,payload_out);
+       log_d("payloadlen = %d,payload = %s\r\n",payload_out_len,payload_out);
 
        len = MQTTSerialize_publish((unsigned char*)buf, buflen, 0, req_qos, retained, msgid, topicString, payload_out, payload_out_len);//发布消息
        rc = transport_sendPacketBuffer(gMySock, (unsigned char*)buf, len);
@@ -233,7 +233,7 @@ int mqttSendData(uint8_t *payload_out,uint16_t payload_out_len)
            log_d("send PUBLISH Successfully,rc = %d,len = %d\r\n",rc,len);
        }
        else
-       {
+       {           
            log_d("send PUBLISH failed,rc = %d,len = %d\r\n",rc,len);     
        }
       
@@ -244,7 +244,7 @@ int mqttSendData(uint8_t *payload_out,uint16_t payload_out_len)
    }
   
 
-   return len;
+   return rc;
 }
 
 
@@ -435,6 +435,7 @@ SYSERRORCODE_E AddCardNo ( uint8_t* msgBuf )
     log_d("cardNo = %s,len = %d\r\n",cardNo,strlen((const char*)cardNo));
 
     log_d("=================================\r\n");
+    //读取当前用户信息
     ret  = readUserData(userData.userId,USER_MODE,&userData);
     
     log_d("ret = %d\r\n",ret);    
@@ -506,16 +507,16 @@ SYSERRORCODE_E AddCardNo ( uint8_t* msgBuf )
     
     mqttSendData(buf,len); 
 
-    ret  = readUserData(userData.cardNo,CARD_MODE,&userData);
-    log_d("ret = %d\r\n",ret);    
-    log_d("userData.cardState = %d\r\n",userData.cardState);    
-    log_d("userData.userState = %d\r\n",userData.userState);
-    log_d("userData.cardNo = %s\r\n",userData.cardNo);
-    log_d("userData.userId = %s\r\n",userData.userId);
-    log_d("userData.accessFloor = %s\r\n",userData.accessFloor);
-	dbh("userData.accessFloor", userData.accessFloor, sizeof(userData.accessFloor));
-    log_d("userData.defaultFloor = %d\r\n",userData.defaultFloor);
-    log_d("userData.startTime = %s\r\n",userData.startTime);    
+//    ret  = readUserData(userData.cardNo,CARD_MODE,&userData);
+//    log_d("ret = %d\r\n",ret);    
+//    log_d("userData.cardState = %d\r\n",userData.cardState);    
+//    log_d("userData.userState = %d\r\n",userData.userState);
+//    log_d("userData.cardNo = %s\r\n",userData.cardNo);
+//    log_d("userData.userId = %s\r\n",userData.userId);
+//    log_d("userData.accessFloor = %s\r\n",userData.accessFloor);
+//	  dbh("userData.accessFloor", userData.accessFloor, sizeof(userData.accessFloor));
+//    log_d("userData.defaultFloor = %d\r\n",userData.defaultFloor);
+//    log_d("userData.startTime = %s\r\n",userData.startTime);    
   
 	return result;
 }
@@ -1315,19 +1316,19 @@ static SYSERRORCODE_E PCOptDev ( uint8_t* msgBuf )
 
 
 log_d("===============CARD_MODE==================\r\n");
-//TestFlash(CARD_MODE);
+TestFlash(CARD_MODE);
 
 
 log_d("===============USER_MODE==================\r\n");
-//TestFlash(USER_MODE);
+TestFlash(USER_MODE);
 
 
 log_d("===============CARD_DEL_MODE==================\r\n");
-//TestFlash(CARD_DEL_MODE);
+TestFlash(CARD_DEL_MODE);
 
 
 log_d("===============USER_DEL_MODE==================\r\n");
-//TestFlash(USER_DEL_MODE);
+TestFlash(USER_DEL_MODE);
 
 
 

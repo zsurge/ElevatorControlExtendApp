@@ -1114,7 +1114,6 @@ uint8_t optRecordIndex ( RECORDINDEX_STRU* recoIndex,uint8_t mode )
 		memcpy ( buff,recoIndex,sizeof ( RECORDINDEX_STRU ) );
 
 		log_d ( "write index %d,%d,%d,%d\r\n",recoIndex->cardNoIndex,recoIndex->delCardNoIndex,recoIndex->userIdIndex,recoIndex->delUserIdIndex );
-		dbh ( "write index", buff, sizeof ( RECORDINDEX_STRU ) );
 
 		ret = FRAM_Write ( FM24V10_1, RECORD_INDEX_ADDR, buff,sizeof ( RECORDINDEX_STRU ) );
 		if ( ret == 0 )

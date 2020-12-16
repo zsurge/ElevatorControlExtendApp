@@ -108,8 +108,8 @@ typedef enum
 
 #if UART6_FIFO_EN == 1
 	#define UART6_BAUD			9600
-	#define UART6_TX_BUF_SIZE	1*512
-	#define UART6_RX_BUF_SIZE	1*512
+	#define UART6_TX_BUF_SIZE	1*256
+	#define UART6_RX_BUF_SIZE	1*256
 #endif
 
 /* 串口设备结构体 */
