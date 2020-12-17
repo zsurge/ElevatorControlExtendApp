@@ -33,10 +33,14 @@ volatile uint32_t g500usTimerRS485 = 0;
 
 //volatile uint32_t gRandomNum = 0;
 
+extern TIM_TYPE gCmdTimer = {0};
+
+
 void bsp_TimeSysTickHandler (void)
 {
     if (g500usTimerUART  > 0) g500usTimerUART--;    
     if (g500usTimerRS485  > 0) g500usTimerRS485--; 
+    if (gCmdTimer.outTimer > 0) gCmdTimer.outTimer--; 
 }
 
 void bsp_TIM6_Init(void)

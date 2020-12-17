@@ -150,7 +150,7 @@ static void vTaskDataProcess(void *pvParameters)
                 }    
 
                 //4.发送电梯数据到队列
-                for(i=0;i<4;i++)
+                for(i=0;i<8;i++)
                 {   
                     if(devSendData.data[i].devSn == 1)
                     {
@@ -189,7 +189,7 @@ static void vTaskDataProcess(void *pvParameters)
                 }
 
                 //4.发送电梯数据到队列
-                for(i=0;i<4;i++)
+                for(i=0;i<8;i++)
                 {   
                     if(devSendData.data[i].devSn == 1)
                     {

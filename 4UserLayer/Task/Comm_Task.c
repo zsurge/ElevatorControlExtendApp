@@ -60,6 +60,7 @@ typedef struct FROMHOST
 #define COMM_STK_SIZE 		(configMINIMAL_STACK_SIZE*4)
 
 uint16_t packetBuf(ELEVATOR_TRANBUFF_STRU *src,uint8_t *desc);
+uint16_t packetDefault(uint8_t devSn ,uint8_t *desc);
 
 /*----------------------------------------------*
  * 常量定义                                     *
@@ -95,11 +96,11 @@ static void vTaskComm(void *pvParameters)
 {
     TickType_t xLastWakeTime;
     ELEVATOR_TRANBUFF_STRU *recvBuf = &gRecvElevtorData;
+    uint8_t devSn = 0;
 
     uint32_t i = 0;
     uint8_t buf[32] = {0};
-    uint16_t bufLen = 0;
-    
+    uint16_t bufLen = 0;    
     BaseType_t xReturn = pdTRUE;/* 定义一个创建信息返回值，默认为pdPASS */
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(100); /* 设置最大等待时间为200ms */  
 
@@ -107,13 +108,8 @@ static void vTaskComm(void *pvParameters)
     
     while (1)
     {
-        memset(&gRecvElevtorData,0x00,sizeof(gRecvElevtorData));
-        
-        if(deal_Serial_Parse() == FINISHED)
-        { 
-            log_d("recv extend return data\r\n");
-        }       
-       
+        memset(&gRecvElevtorData,0x00,sizeof(gRecvElevtorData));       
+
   
         xReturn = xQueueReceive( xTransDataQueue,    /* 消息队列的句柄 */
                                  (void *)recvBuf,  /*这里获取的是结构体的地址 */
@@ -121,23 +117,39 @@ static void vTaskComm(void *pvParameters)
         if(pdTRUE == xReturn)
         {
             //消息接收成功，发送接收到的消息
-
-            log_d("recv queue value = %x,devsn=%d\r\n",recvBuf->value,recvBuf->devSn);
-            
+            memset(buf,0x00,sizeof(buf));
             bufLen = packetBuf(recvBuf ,buf);
-            RS485_SendBuf(COM6,buf,bufLen);   
-            
-            dbh("send com6 buff", buf, bufLen);
-            
-            vTaskDelay(100); 
-
-            if(deal_Serial_Parse() == FINISHED)
-            { 
-                log_d("recv extend return data\r\n");
-            }        
+            RS485_SendBuf(COM6,buf,bufLen); 
+            dbh("send com6 buff", buf, bufLen);  
+//            gCmdTimer.flag = true;
+//            gCmdTimer.outTimer = 20000;
         }
-
-  
+        else
+        {
+//            if(gCmdTimer.outTimer == 0 && gCmdTimer.flag == true)
+//            {
+//                 gCmdTimer.flag == false;
+//            }
+//            else
+//            {
+                //无消息则发送握手消息            
+                memset(buf,0x00,sizeof(buf));
+                if(devSn > 7)
+                {
+                  devSn = 0;
+                }
+                devSn++;
+                bufLen = packetDefault(devSn,buf);
+                RS485_SendBuf(COM6,buf,bufLen); 
+//            }
+        }  
+        
+        vTaskDelay(50);
+        
+        if(deal_Serial_Parse() == FINISHED)
+        { 
+            log_d("recv extend return data\r\n");
+        }  
 
 		/* 发送事件标志，表示任务正常运行 */        
 		xEventGroupSetBits(xCreatedEventGroup, TASK_BIT_1);  
@@ -226,5 +238,28 @@ uint16_t packetBuf(ELEVATOR_TRANBUFF_STRU *src,uint8_t *desc)
 
     return len;    
 }
+
+uint16_t packetDefault(uint8_t devSn ,uint8_t *desc)
+{
+    uint8_t buf[32] = {0};
+    uint16_t len = 0;
+
+    buf[len++] = 0xA6;
+    buf[len++] = 0xA6;
+    buf[len++] = 0xA6;
+    buf[len++] = devSn;
+    buf[len++] = 0x03;    
+    buf[len++] = 0x06;
+    buf[len++] = 0x00;//高8位
+    buf[len++] = 0x00;//低8位
+    buf[len++] = xorCRC(buf,8);
+
+    memcpy(desc,buf,len);
+
+    return len;    
+}
+
+
+
 
 
