@@ -149,18 +149,31 @@ static void vTaskDataProcess(void *pvParameters)
                     break;  //无权限   
                 }    
 
-                //4.发送电梯数据到队列
-                for(i=0;i<8;i++)
-                {   
-                    if(devSendData.data[i].devSn == 1)
-                    {
-                        sendElevator->devSn = i+1;
-                        sendElevator->value = devSendData.data[i].value;
-                        log_d("value = %x,devsn = %d\r\n",sendElevator->value,sendElevator->devSn);
-                       //发送数据到队列 
-                       sendQueueToDev(sendElevator);                
-                    }
+                //单层权限，并且在第2个设备或以后
+                if(devSendData.data[0].devSn > 1)
+                {
+                    sendElevator->devSn = devSendData.data[0].devSn;
+                    sendElevator->value = devSendData.data[0].value;
+                    log_d("value = %x,devsn = %d\r\n",sendElevator->value,sendElevator->devSn);
+                    //发送数据到队列 
+                    sendQueueToDev(sendElevator);                       
                 }
+                else
+                {
+                    //4.发送电梯数据到队列
+                    for(i=0;i<8;i++)
+                    {   
+                        if(devSendData.data[i].devSn == 1)
+                        {
+                            sendElevator->devSn = i+1;
+                            sendElevator->value = devSendData.data[i].value;
+                            log_d("value = %x,devsn = %d\r\n",sendElevator->value,sendElevator->devSn);
+                           //发送数据到队列 
+                           sendQueueToDev(sendElevator);                
+                        }
+                    }     
+                }
+
                 break;
             case AUTH_MODE_QR:
                 isFind = parseQrCode(ptMsg->data,&localUserData);

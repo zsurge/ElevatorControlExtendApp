@@ -75,7 +75,9 @@ extern ELEVATOR_TRANBUFF_STRU gElevtorData,gRecvElevtorData;
 
 SYSERRORCODE_E packetToElevatorExtend(USERDATA_STRU *localUserData,ELEVATOR_BUFF_STRU *devSendData);//add 1204
 
-SYSERRORCODE_E calcSingleFloor(uint8_t floor,ELEVATOR_BUFF_STRU *eBuf);
+
+SYSERRORCODE_E calcSingleFloor(uint8_t layer,ELEVATOR_BUFF_STRU *eBuf);
+
 SYSERRORCODE_E calcMultilFloor(uint8_t *floorBuf,uint8_t num,ELEVATOR_BUFF_STRU *eBuf);
 void sendQueueToDev(ELEVATOR_TRANBUFF_STRU *devSendData);
 

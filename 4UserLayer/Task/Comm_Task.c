@@ -116,32 +116,25 @@ static void vTaskComm(void *pvParameters)
                                  xMaxBlockTime); /* 设置阻塞时间 */
         if(pdTRUE == xReturn)
         {
-            //消息接收成功，发送接收到的消息
+            //消息接收成功，发送接收到的消息   
             memset(buf,0x00,sizeof(buf));
             bufLen = packetBuf(recvBuf ,buf);
             RS485_SendBuf(COM6,buf,bufLen); 
             dbh("send com6 buff", buf, bufLen);  
-//            gCmdTimer.flag = true;
-//            gCmdTimer.outTimer = 20000;
+
         }
         else
         {
-//            if(gCmdTimer.outTimer == 0 && gCmdTimer.flag == true)
-//            {
-//                 gCmdTimer.flag == false;
-//            }
-//            else
-//            {
-                //无消息则发送握手消息            
-                memset(buf,0x00,sizeof(buf));
-                if(devSn > 7)
-                {
-                  devSn = 0;
-                }
-                devSn++;
-                bufLen = packetDefault(devSn,buf);
-                RS485_SendBuf(COM6,buf,bufLen); 
-//            }
+            //无消息则发送握手消息            
+            memset(buf,0x00,sizeof(buf));
+            if(devSn > 7)
+            {
+              devSn = 0;
+            }
+            devSn++;
+            bufLen = packetDefault(devSn,buf);
+            RS485_SendBuf(COM6,buf,bufLen); 
+
         }  
         
         vTaskDelay(50);
@@ -222,7 +215,7 @@ static uint8_t deal_Serial_Parse(void)
 uint16_t packetBuf(ELEVATOR_TRANBUFF_STRU *src,uint8_t *desc)
 {
     uint8_t buf[32] = {0};
-    uint16_t len = 0;
+    uint16_t len = 0;    
 
     buf[len++] = 0xA6;
     buf[len++] = 0xA6;
