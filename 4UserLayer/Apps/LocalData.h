@@ -168,13 +168,13 @@ typedef struct USERDATA
     uint8_t cardState;                              //卡状态 有效/已删除/黑名单/临时卡    
     uint8_t userState;                              //用户状态 有效/已删除
     uint8_t platformType;                           //平台类型，第三方平台、博思高平台等
-    uint8_t userId[CARD_USER_LEN+1];                  //用户ID
-    uint8_t cardNo[CARD_USER_LEN+1];                  //卡号
-    char accessFloor[FLOOR_ARRAY_LENGTH+1];        //楼层权限
-    uint8_t startTime[TIME_LENGTH+1];                 //账户有效时间
-    uint8_t endTime[TIME_LENGTH+1];                   //账户结束时间    
-    uint8_t timeStamp[TIME_LENGTH+1];                 //二维码时间戳
-    uint8_t reserve[RESERVE_LENGTH+1];                //预留空间 
+    uint8_t userId[CARD_USER_LEN+1];                //用户ID
+    uint8_t cardNo[CARD_USER_LEN+1];                //卡号
+    char accessFloor[FLOOR_ARRAY_LENGTH+1];         //楼层权限
+    uint8_t startTime[TIME_LENGTH+1];               //账户有效时间
+    uint8_t endTime[TIME_LENGTH+1];                 //账户结束时间    
+    uint8_t timeStamp[TIME_LENGTH+1];               //二维码时间戳
+    uint8_t reserve[RESERVE_LENGTH+1];              //预留空间 
     uint8_t crc;                                    //校验值 head~reseve
 }USERDATA_STRU;
 #pragma pack()
@@ -201,6 +201,8 @@ void TestFlash(uint8_t mode);
 
 //add 2020.07.14
 int readHead(HEADINFO_STRU *head,uint8_t mode);
+
+int readFlashIndex(int headIndex,uint8_t mode);
 
 void sortHead(HEADINFO_STRU *head,int length);
 

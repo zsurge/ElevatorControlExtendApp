@@ -281,6 +281,7 @@ uint8_t readUserData ( uint8_t* header,uint8_t mode,USERDATA_STRU* userData )
 
     log_d("1 want find head = %x\r\n",head.headData.id);
 
+    //这里是head的序列号，要想知道FLASH的索引，还需要读取
 	index = readHead(&head,mode);
 	
     iTime2 = xTaskGetTickCount();	/* 记下结束时间 */
@@ -477,6 +478,7 @@ uint8_t delUserData ( uint8_t* header,uint8_t mode )
 	uint32_t addr = 0;
 	uint16_t index = 0;
     HEADINFO_STRU head;
+    int flashIndex = 0;
 
 	int32_t iTime1, iTime2;
 	//log_d("sizeof(USERDATA_STRU) = %d\r\n",sizeof(USERDATA_STRU));
@@ -494,24 +496,33 @@ uint8_t delUserData ( uint8_t* header,uint8_t mode )
 	}
     asc2bcd (head.headData.sn, header,CARD_NO_LEN_ASC, 1 );
 
-
+    //返回head的索引值,若需flash的索引值，还需要再重读
     index = readHead(&head,mode);
 
 	log_d ( "searchHeaderIndex index = %d",index );
-
 	if ( ret != 1 )
 	{
 		//log_d("can't find the head index\r\n");
 		return 3;//提示未找到索引
 	}
+	
+
+	//读取FLASH索引
+	flashIndex = readFlashIndex(index,mode);	
+	if ( flashIndex == NO_FIND_HEAD)
+	{
+		//log_d("write del source index error\r\n");
+		return 6;//提示未找到索引
+	}
+
 
 	if ( mode == CARD_MODE )
 	{
-		addr = CARD_NO_DATA_ADDR + index * ( sizeof ( USERDATA_STRU ) );
+		addr = CARD_NO_DATA_ADDR + flashIndex * ( sizeof ( USERDATA_STRU ) );
 	}
 	else if ( mode == USER_MODE )
 	{
-		addr = USER_ID_DATA_ADDR + index * ( sizeof ( USERDATA_STRU ) );
+		addr = USER_ID_DATA_ADDR + flashIndex * ( sizeof ( USERDATA_STRU ) );
 	}
 
 	//packet write buff
@@ -545,25 +556,18 @@ uint8_t delUserData ( uint8_t* header,uint8_t mode )
 
 	//写删除索引
 	//删除索引值为原索引的值
-	memset ( header,0x00,sizeof ( ( const char* ) header ) );
-	sprintf ( ( char* ) header,"%08d",index );
+	//20.12.21,因为删除之后会把索引和值清空，所以无所谓原索引号	
+//	memset ( header,0x00,sizeof ( ( const char* ) header ) );
+//	sprintf ( ( char* ) header,"%08d",index );
 
-	//log_d("need del header value = %s,\r\n",header);
 
-	ret = writeDelHeader ( header,mode );
-	if ( ret != 0 )
-	{
-		//log_d("write del index error\r\n");
-		return 5;//提示未找到索引
-	}
+//	ret = writeDelHeader ( header,mode );
+//	if ( ret != 0 )
+//	{
+//		//log_d("write del index error\r\n");
+//		return 5;//提示未找到索引
+//	}
 
-	//删除原索引
-	ret = delSourceHeader ( index,mode );
-	if ( ret != 0 )
-	{
-		//log_d("write del source index error\r\n");
-		return 6;//提示未找到索引
-	}
 
 
 	iTime2 = xTaskGetTickCount();   /* 记下结束时间 */
@@ -857,8 +861,8 @@ int readHead(HEADINFO_STRU *head,uint8_t mode)
         {
             //直接返回当前目标值的FLASH索引
             iTime2 = xTaskGetTickCount();   /* 记下结束时间 */
-            log_d ( "find it，use %d ms,flash addr = %d\r\n",iTime2 - iTime1,ret);              
-            return ret;
+            log_d ( "find it，use %d ms,flash addr = %d\r\n",iTime2 - iTime1,multiple*HEAD_NUM_SECTOR+ret);              
+            return multiple*HEAD_NUM_SECTOR+ret;
         }
     }    
     
@@ -895,9 +899,9 @@ int readHead(HEADINFO_STRU *head,uint8_t mode)
             if(ret != NO_FIND_HEAD)
             {
             	iTime2 = xTaskGetTickCount();	/* 记下结束时间 */
-            	log_d ( "find it，use %d ms,index = %d\r\n",iTime2 - iTime1,ret);      
+            	log_d ( "find it，use %d ms,index = %d\r\n",iTime2 - iTime1,i*HEAD_NUM_SECTOR+ret);      
                 
-                return ret;
+                return i*HEAD_NUM_SECTOR+ret;
             }
 
         }
@@ -909,6 +913,42 @@ int readHead(HEADINFO_STRU *head,uint8_t mode)
 
     return NO_FIND_HEAD;
 
+}
+
+int readFlashIndex(int headIndex,uint8_t mode)
+{
+	int ret = 0;
+	uint32_t address = 0;	
+	
+    HEADINFO_STRU tmpData;
+
+	if ( mode == CARD_MODE )
+	{
+		address = CARD_NO_HEAD_ADDR;
+	}
+	else if ( mode == USER_MODE )
+	{
+		address = USER_ID_HEAD_ADDR;
+	}
+	else if ( mode == CARD_DEL_MODE )
+	{
+		address = CARD_DEL_HEAD_ADDR;
+	}
+	else if ( mode == USER_DEL_HEAD_ADDR )
+	{
+		address = USER_DEL_HEAD_ADDR;
+	}
+	
+    ret = FRAM_Read (FM24V10_1, address+headIndex* CARD_USER_LEN, &tmpData,CARD_USER_LEN); 
+
+	if(ret == 0)
+    {
+        log_e("read fram error\r\n");
+        return NO_FIND_HEAD; 
+    }
+
+    return tmpData.flashAddr;//返回flash的索引值   	
+    
 }
 
 

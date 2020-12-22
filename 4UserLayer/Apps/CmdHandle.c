@@ -606,18 +606,18 @@ SYSERRORCODE_E DelCardNo ( uint8_t* msgBuf )
 
     mqttSendData(buf,len);    
 
-    log_d("=================================\r\n");  
+    log_d("=================================\r\n");
     
-    memset(&userData,0x00,sizeof(userData));
-    rRet = readUserData(userId,USER_MODE,&userData);
-    log_d("ret = %d\r\n",rRet);    
-    log_d("userData.cardState = %d\r\n",userData.cardState);    
-    log_d("userData.userState = %d\r\n",userData.userState);
-    log_d("userData.cardNo = %s\r\n",userData.cardNo);
-    log_d("userData.userId = %s\r\n",userData.userId);
-    log_d("userData.accessFloor = %s\r\n",userData.accessFloor);
-    log_d("userData.defaultFloor = %d\r\n",userData.defaultFloor);
-    log_d("userData.startTime = %s\r\n",userData.startTime);
+//    memset(&userData,0x00,sizeof(userData));
+//    rRet = readUserData(userId,USER_MODE,&userData);
+//    log_d("ret = %d\r\n",rRet);    
+//    log_d("userData.cardState = %d\r\n",userData.cardState);    
+//    log_d("userData.userState = %d\r\n",userData.userState);
+//    log_d("userData.cardNo = %s\r\n",userData.cardNo);
+//    log_d("userData.userId = %s\r\n",userData.userId);
+//    log_d("userData.accessFloor = %s\r\n",userData.accessFloor);
+//    log_d("userData.defaultFloor = %d\r\n",userData.defaultFloor);
+//    log_d("userData.startTime = %s\r\n",userData.startTime);
 
     for (i = 0; i < 20; i++)
     {
