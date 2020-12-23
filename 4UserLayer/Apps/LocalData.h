@@ -190,7 +190,6 @@ uint8_t writeUserData(USERDATA_STRU *userData,uint8_t mode);
 
 uint8_t readUserData(uint8_t* header,uint8_t mode,USERDATA_STRU *userData);
 
-uint8_t modifyUserData(USERDATA_STRU *userData,uint8_t mode);
 
 uint8_t delUserData(uint8_t *header,uint8_t mode);
 
@@ -202,12 +201,14 @@ void TestFlash(uint8_t mode);
 //add 2020.07.14
 int readHead(HEADINFO_STRU *head,uint8_t mode);
 
-int readFlashIndex(int headIndex,uint8_t mode);
 
 void sortHead(HEADINFO_STRU *head,int length);
 
 void addHead(uint8_t *head,uint8_t mode);
 
+void qSortCard(HEADINFO_STRU *head,uint32_t length);
+
+int delHead(uint8_t *headBuff,uint8_t mode);
 
 
 

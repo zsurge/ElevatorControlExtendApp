@@ -222,7 +222,7 @@ static void vTaskBarCode(void *pvParameters)
                     	/* 使用消息队列实现指针变量的传递 */
                     	if(xQueueSend(xDataProcessQueue,              /* 消息队列句柄 */
                     				 (void *) &ptQR,   /* 发送指针变量recv_buf的地址 */
-                    				 (TickType_t)100) != pdPASS )
+                    				 (TickType_t)50) != pdPASS )
                     	{
                             log_d("the queue is full!\r\n");                
                             xQueueReset(xDataProcessQueue);

@@ -123,36 +123,56 @@ SYSERRORCODE_E calcSingleFloor(uint8_t layer,ELEVATOR_BUFF_STRU *eBuf)
 {
     uint8_t floor = 0;
 
-    
+    uint8_t offset = ((bsp_dipswitch_read()>>2) & 0x03);
     
     if(layer == 0)
     {
          return INVALID_FLOOR;//无效的楼层
     }
 
-    if(layer == 253)
+//    if(layer == 253)
+//    {
+//        floor = 1;
+//    }
+//    else if(layer == 254)
+//    {
+//        floor = 2;
+//    }
+//    else if(layer == 255)
+//    {
+//        floor = 3;
+//    }
+    
+
+    if(layer > 200)
     {
-        floor = 1;
-    }
-    else if(layer == 254)
-    {
-        floor = 2;
-    }
-    else if(layer == 255)
-    {
-        floor = 3;
+        if(256-layer == offset)
+        {
+            floor = offset - (256-layer)+1;
+        }
+        else if(256-layer < offset)
+        {
+            floor = offset-(256-layer)+1;
+        }
+        else
+        {
+            floor = offset+1;
+        }        
     }
     else
     {
         floor = layer + ((bsp_dipswitch_read()>>2) & 0x03); //根据拨码补偿楼层数
     }
 
+    log_d("calc Single Floor = %d\r\n",floor);
 
     if(floor > 0 && floor<=8)
     {
         eBuf->data[0].devSn = 1;
         eBuf->data[0].value = setbit(0,(floor-1)*2);        
         eBuf->data[0].value = setbit(eBuf->data[0].value,(floor-1)*2+1);
+        log_d("send desc floor = %d,%d\r\n",eBuf->data[0].value,eBuf->data[0].devSn);  
+        
     }
     else if(floor >=9 && floor<=16)
     {
@@ -282,28 +302,47 @@ SYSERRORCODE_E calcMultilFloor(uint8_t *floorBuf,uint8_t num,ELEVATOR_BUFF_STRU 
     uint8_t tmpFloor = 0;
     uint8_t curFloor = 0;
     //需补偿的楼层
-//    uint8_t offsetFloor = (bsp_dipswitch_read()>>2) & 0x03;
+    uint8_t offset = ((bsp_dipswitch_read()>>2) & 0x03);
 
     //按目前需求，超过1层权限，就按所有楼层处理  
     for(i=0;i<num;i++)
     {
 
-        if(floorBuf[i] == 253)
+//        if(floorBuf[i] == 253)
+//        {
+//            curFloor = 1;
+//        }
+//        else if(floorBuf[i] == 254)
+//        {
+//            curFloor = 2;
+//        }
+//        else if(floorBuf[i] == 255)
+//        {
+//            curFloor = 3;
+//        }
+
+        if(floorBuf[i] > 200)
         {
-            curFloor = 1;
-        }
-        else if(floorBuf[i] == 254)
-        {
-            curFloor = 2;
-        }
-        else if(floorBuf[i] == 255)
-        {
-            curFloor = 3;
-        }
+            if(256-floorBuf[i] == offset)
+            {
+                curFloor = offset - (256-floorBuf[i])+1;
+            }
+            else if(256-floorBuf[i] < offset)
+            {
+                curFloor = offset-(256-floorBuf[i])+1;
+            }
+            else
+            {
+                curFloor = offset+1;
+            }
+        }        
         else
         {
             curFloor = floorBuf[i] + ((bsp_dipswitch_read()>>2) & 0x03); //根据拨码补偿楼层数
         }
+
+        
+        log_d("calc  Multil Floor = %d\r\n",curFloor);
         
         if(curFloor > 0 && curFloor<=8)
         {

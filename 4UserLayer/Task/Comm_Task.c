@@ -102,7 +102,7 @@ static void vTaskComm(void *pvParameters)
     uint8_t buf[32] = {0};
     uint16_t bufLen = 0;    
     BaseType_t xReturn = pdTRUE;/* 定义一个创建信息返回值，默认为pdPASS */
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(100); /* 设置最大等待时间为200ms */  
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(30); /* 设置最大等待时间为200ms */  
 
     xLastWakeTime = xTaskGetTickCount();
     
@@ -134,7 +134,6 @@ static void vTaskComm(void *pvParameters)
             devSn++;
             bufLen = packetDefault(devSn,buf);
             RS485_SendBuf(COM6,buf,bufLen); 
-
         }  
         
         vTaskDelay(50);

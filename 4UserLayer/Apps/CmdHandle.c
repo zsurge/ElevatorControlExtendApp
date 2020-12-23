@@ -345,25 +345,27 @@ static SYSERRORCODE_E DelUserId( uint8_t* msgBuf )
     sprintf((char *)userId,"%08s",tmp);
     log_d("userId = %s\r\n",userId);
 
-    log_d("=================================\r\n");
-    rRet = readUserData(userId,USER_MODE,&userData);
+//    log_d("=================================\r\n");
+//    rRet = readUserData(userId,USER_MODE,&userData);
 
-    log_d("ret = %d\r\n",rRet);    
-    log_d("userData.cardState = %d\r\n",userData.cardState);    
-    log_d("userData.userState = %d\r\n",userData.userState);
-    log_d("userData.cardNo = %s\r\n",userData.cardNo);
-    log_d("userData.userId = %s\r\n",userData.userId);
-    log_d("userData.accessFloor = %s\r\n",userData.accessFloor);
-    log_d("userData.defaultFloor = %d\r\n",userData.defaultFloor);
-    log_d("userData.startTime = %s\r\n",userData.startTime);
+//    log_d("ret = %d\r\n",rRet);    
+//    log_d("userData.cardState = %d\r\n",userData.cardState);    
+//    log_d("userData.userState = %d\r\n",userData.userState);
+//    log_d("userData.cardNo = %s\r\n",userData.cardNo);
+//    log_d("userData.userId = %s\r\n",userData.userId);
+//    log_d("userData.accessFloor = %s\r\n",userData.accessFloor);
+//    log_d("userData.defaultFloor = %d\r\n",userData.defaultFloor);
+//    log_d("userData.startTime = %s\r\n",userData.startTime);
 
 
-    if(rRet == 0)
-    {
-        userData.head = TABLE_HEAD;
-        userData.userState = USER_DEL; //ÉèÖÃ¿¨×´Ì¬Îª0£¬É¾³ý¿¨
-        wRet = modifyUserData(&userData,USER_MODE);
-    }
+//    if(rRet == 0)
+//    {
+//        userData.head = TABLE_HEAD;
+//        userData.userState = USER_DEL; //ÉèÖÃ¿¨×´Ì¬Îª0£¬É¾³ý¿¨
+//        wRet = modifyUserData(&userData,USER_MODE);
+//    }
+
+    wRet = delUserData(userId,USER_MODE);
 
     if(wRet ==0)
     {
@@ -986,22 +988,7 @@ static SYSERRORCODE_E GetUserInfo ( uint8_t* msgBuf )
 
     log_d("msgBuf = %s\r\n",msgBuf);
 
-//    cardArray = (uint8_t **)my_malloc(20 * sizeof(uint8_t *));
-//    
-//    for (i = 0; i < 20; i++)
-//    {
-//        cardArray[i] = (uint8_t *)my_malloc(8 * sizeof(uint8_t));
-//    }  
-
-//    if(cardArray == NULL)
-//    {
-//        for (i = 0; i < 20; i++)
-//        {
-//            my_free(cardArray[i]);
-//        }  
-//        
-//        return STR_EMPTY_ERR;
-//    }    
+   
 
     tempUserData.head = TABLE_HEAD;
 
@@ -1315,20 +1302,20 @@ static SYSERRORCODE_E PCOptDev ( uint8_t* msgBuf )
 
 
 
-//log_d("===============CARD_MODE==================\r\n");
-//TestFlash(CARD_MODE);
+log_d("===============CARD_MODE==================\r\n");
+TestFlash(CARD_MODE);
 
 
-//log_d("===============USER_MODE==================\r\n");
-//TestFlash(USER_MODE);
+log_d("===============USER_MODE==================\r\n");
+TestFlash(USER_MODE);
 
 
-//log_d("===============CARD_DEL_MODE==================\r\n");
-//TestFlash(CARD_DEL_MODE);
+log_d("===============CARD_DEL_MODE==================\r\n");
+TestFlash(CARD_DEL_MODE);
 
 
-//log_d("===============USER_DEL_MODE==================\r\n");
-//TestFlash(USER_DEL_MODE);
+log_d("===============USER_DEL_MODE==================\r\n");
+TestFlash(USER_DEL_MODE);
 
 
 

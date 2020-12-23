@@ -72,7 +72,7 @@ void CreateDataProcessTask(void)
 static void vTaskDataProcess(void *pvParameters)
 {
     BaseType_t xReturn = pdTRUE;/* 定义一个创建信息返回值，默认为pdPASS */
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(100); /* 设置最大等待时间为100ms */ 
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(30); /* 设置最大等待时间为100ms */ 
     uint8_t isFind = 0; 
     uint8_t ret = 0; 
     uint8_t jsonBuf[512] = {0};
@@ -226,6 +226,8 @@ static void vTaskDataProcess(void *pvParameters)
                 }
                 sendElevator->devSn = devSendData.data[0].devSn;
                 sendElevator->value = devSendData.data[0].value;
+                
+                log_d("send desc floor = %d,%d\r\n",sendElevator->value,sendElevator->devSn);  
                 
                 sendQueueToDev(sendElevator);
                 break;
