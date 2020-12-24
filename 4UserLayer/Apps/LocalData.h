@@ -190,6 +190,7 @@ uint8_t writeUserData(USERDATA_STRU *userData,uint8_t mode);
 
 uint8_t readUserData(uint8_t* header,uint8_t mode,USERDATA_STRU *userData);
 
+int modifyCardData(USERDATA_STRU *userData);
 
 uint8_t delUserData(uint8_t *header,uint8_t mode);
 
@@ -200,7 +201,6 @@ void TestFlash(uint8_t mode);
 
 //add 2020.07.14
 int readHead(HEADINFO_STRU *head,uint8_t mode);
-
 
 void sortHead(HEADINFO_STRU *head,int length);
 

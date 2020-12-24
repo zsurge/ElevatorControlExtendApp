@@ -1390,6 +1390,10 @@ static SYSERRORCODE_E AddSingleUser( uint8_t* msgBuf )
     uint8_t tmp[128] = {0};
     char *multipleFloor[64] = {0};
     int multipleFloorNum = 0;
+    char *cardArray[20] = {0};
+    int multipleCardNum=0;    
+     uint16_t i = 0;
+     
     memset(&tempUserData,0x00,sizeof(USERDATA_STRU));
 
     if(!msgBuf)
@@ -1397,7 +1401,7 @@ static SYSERRORCODE_E AddSingleUser( uint8_t* msgBuf )
         return STR_EMPTY_ERR;
     }
 
-    printf("msgBuf = %s\r\n",msgBuf);
+    log_d("msgBuf = %s\r\n",msgBuf);
 
     //1.添加起始标志
     tempUserData.head = TABLE_HEAD; 
@@ -1445,14 +1449,49 @@ static SYSERRORCODE_E AddSingleUser( uint8_t* msgBuf )
     strcpy((char *)tempUserData.endTime,  (const char*)GetJsonItem((const uint8_t *)msgBuf,(const uint8_t *)"endTime",1));
     log_d("tempUserData.endTime = %s\r\n",tempUserData.endTime);
 
+    //2.保存卡号
+    memset(buf,0x00,sizeof(buf));
+    strcpy((char *)buf,  (const char*)GetJsonItem((const uint8_t *)msgBuf,(const uint8_t *)"cardNo",1));
+    split((char *)buf,",",cardArray,&multipleCardNum); //调用函数进行分割 
+    
 
     //全0的USER ID不记录
     if(memcmp(tempUserData.userId,"00000000",CARD_USER_LEN) != 0)
     {
         tempUserData.userState = USER_VALID;
         ret = writeUserData(&tempUserData,USER_MODE);
-        log_d("write user id = %d\r\n",ret);       
-    }      
+        log_d("write user id = %d\r\n",ret);    
+        if(ret != 0)
+        {   
+            log_e("write user id error\r\n");
+            result = FLASH_W_ERR;
+        }         
+    }   
+    
+    if(multipleCardNum >= 1)
+    {
+        for(i=0;i<multipleCardNum;i++)
+        {
+            tempUserData.cardState = CARD_VALID;     
+            memset(tempUserData.cardNo,0x00,sizeof(tempUserData.cardNo));
+            memcpy(tempUserData.cardNo,cardArray[i],CARD_USER_LEN);   
+
+            log_d("->%d th,cardid = %s\r\n",i,tempUserData.cardNo);
+            
+            ret = modifyCardData(&tempUserData);
+
+            if(ret != 0)
+            {    
+                log_e("write card id error\r\n");            
+                result = FLASH_W_ERR;
+            }
+
+        }
+    }
+    else
+    {
+        log_d("the empty card Number\r\n");
+    }   
 
 
     result = modifyJsonItem((const uint8_t *)msgBuf,(const uint8_t *)"commandCode","3004",0,buf);
