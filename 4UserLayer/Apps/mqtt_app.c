@@ -332,7 +332,7 @@ log_d("2 gDevBaseParam.deviceCode.qrSn = %s,gDevBaseParam.deviceCode.qrSnLen = %
 				msgtypes = 0;
 				break;
 
-			case PINGREQ:   
+			case PINGREQ: //12 心跳请求  
 //				log_d ( "step = %d,mqtt server ping ,pingEQTimes = %d\r\n",PINGREQ,pingEQTimes);  			//心跳			
 			    len = MQTTSerialize_pingreq((unsigned char*)buf, buflen);							//心跳
 				rc = transport_sendPacketBuffer(gMySock, (unsigned char*)buf, len);
@@ -354,37 +354,6 @@ log_d("2 gDevBaseParam.deviceCode.qrSn = %s,gDevBaseParam.deviceCode.qrSnLen = %
                 }	
                 msgtypes = 0;
 				break;
-#if 0		//会频繁触发MQTT上下线机制	
-			//心跳请求
-			case PINGREQ://12
-				len = MQTTSerialize_pingreq ( ( unsigned char* ) buf, buflen );		
-				//心跳
-				rc = transport_sendPacketBuffer ( gMySock, ( unsigned char* ) buf, len );
-				if ( rc == len )
-				{
-//					log_d ( "send PINGREQ Successfully\r\n" );                                      
-
-                    rc = MQTTPacket_read ( ( unsigned char* ) buf, buflen, transport_getdata ); //轮询，读MQTT返回数据，
-                    if ( rc != PINGRESP ) //服务器无响应
-                    {
-                        log_d ( "lost mqtt server connect!\r\n");
-                        msgtypes = CONNECT; 
-                        gConnectStatus = 0;
-                        goto MQTT_reconnect;
-                    }
-                    log_d ( "step = %d,mqtt server Pong\r\n",PINGRESP );            //心跳回执，服务有响应
-
-                    msgtypes = 0;
-				}
-				else
-				{
-					log_d ( "send PINGREQ failed,\r\n");
-                    msgtypes = CONNECT; 
-                    gConnectStatus = 0;
-                    goto MQTT_reconnect;                    
-				}				            
-				break;
-#endif				
 			//心跳响应
 			case PINGRESP://13
 			    pingEQTimes--;

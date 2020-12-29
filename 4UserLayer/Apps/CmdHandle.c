@@ -818,6 +818,8 @@ SYSERRORCODE_E GetDevInfo ( uint8_t* msgBuf )
     mqttSendData(buf,len);
     
     my_free(identification);
+
+    manualSortCard();
     
 	return result;
 
@@ -1301,7 +1303,7 @@ static SYSERRORCODE_E PCOptDev ( uint8_t* msgBuf )
 //    log_d("userData.startTime = %s\r\n",userData.startTime);
 
 
-
+#ifdef DEBUG_PRINT
 log_d("===============CARD_MODE==================\r\n");
 TestFlash(CARD_MODE);
 
@@ -1317,7 +1319,7 @@ TestFlash(CARD_DEL_MODE);
 log_d("===============USER_DEL_MODE==================\r\n");
 TestFlash(USER_DEL_MODE);
 
-
+#endif
 
 
 

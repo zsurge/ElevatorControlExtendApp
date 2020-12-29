@@ -204,9 +204,13 @@ int readHead(HEADINFO_STRU *head,uint8_t mode);
 
 void sortHead(HEADINFO_STRU *head,int length);
 
+//针对所有数据排序
+void manualSortCard(void);
+
+
 void addHead(uint8_t *head,uint8_t mode);
 
-void qSortCard(HEADINFO_STRU *head,uint32_t length);
+//void qSortCard(HEADINFO_STRU *head,uint32_t length);
 
 int delHead(uint8_t *headBuff,uint8_t mode);
 

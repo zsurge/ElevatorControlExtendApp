@@ -392,7 +392,7 @@ uint8_t readUserData ( uint8_t* header,uint8_t mode,USERDATA_STRU* userData )
 	}
 	
 	asc2bcd (head.headData.sn, header,CARD_NO_LEN_ASC, 1 );
-	
+
 	
     iTime1 = xTaskGetTickCount();	/* 记下开始时间 */
 
@@ -932,9 +932,7 @@ int readHead(HEADINFO_STRU *head,uint8_t mode)
 		return NO_FIND_HEAD;
 	}	
 
-    log_d("2 want find head = %x\r\n",head->headData.id);
-	
-
+    log_d("2 want find head = %08x\r\n",head->headData.id);
     ClearRecordIndex();
     optRecordIndex(&gRecordIndex,READ_PRARM);
     
@@ -942,7 +940,7 @@ int readHead(HEADINFO_STRU *head,uint8_t mode)
 	if ( mode == CARD_MODE )
 	{
 		address = CARD_NO_HEAD_ADDR;
-		curIndex = gRecordIndex.cardNoIndex;
+		curIndex = gRecordIndex.cardNoIndex;        
 	}
 	else if ( mode == USER_MODE )
 	{
@@ -990,13 +988,11 @@ int readHead(HEADINFO_STRU *head,uint8_t mode)
     }  
     log_d("head = %x,last page %x,%x\r\n",head->headData.id,firstData.headData.id,lastData.headData.id);
 
-
     
     if((head->headData.id >= firstData.headData.id) && (head->headData.id <= lastData.headData.id))
     {
 //        ret = Bin_Search(sectorBuff,remainder,head->headData.id);
         ret = Bin_Search_addr(address,remainder,head->headData.id); 
-        
         if(ret != NO_FIND_HEAD)
         {
             //直接返回当前目标值的FLASH索引
@@ -1030,12 +1026,11 @@ int readHead(HEADINFO_STRU *head,uint8_t mode)
             return NO_FIND_HEAD;
         }  
         log_d("head = %x,last page %x,%x\r\n",head->headData.id,firstData.headData.id,lastData.headData.id);
-
-        
         if(head->headData.id >= firstData.headData.id && head->headData.id <= lastData.headData.id)
         {
 //            ret = Bin_Search(sectorBuff,HEAD_NUM_SECTOR,head->headData.id);
-            ret = Bin_Search_addr(address,HEAD_NUM_SECTOR,head->headData.id);       
+            ret = Bin_Search_addr(address,HEAD_NUM_SECTOR,head->headData.id); 
+            
             if(ret != NO_FIND_HEAD)
             {
             	iTime2 = xTaskGetTickCount();	/* 记下结束时间 */
@@ -1105,6 +1100,82 @@ void sortHead(HEADINFO_STRU *head,int length)
         head[left] = tmp;
     }
 }
+
+
+void manualSortCard(void)
+{
+    uint8_t multiple = 0;
+	uint16_t remainder = 0;
+	int ret = 0;
+
+	int i = 0;
+	uint32_t addr = CARD_NO_HEAD_ADDR;
+
+    int32_t iTime1, iTime2;   
+       
+   //1.先判定当前有多少个卡号;
+    ClearRecordIndex();
+    optRecordIndex(&gRecordIndex,READ_PRARM);
+    
+	addr = CARD_NO_HEAD_ADDR;    
+    multiple = gRecordIndex.cardNoIndex / HEAD_NUM_SECTOR;
+    remainder = gRecordIndex.cardNoIndex % HEAD_NUM_SECTOR;
+
+    memset(gSectorBuff,0x00,sizeof(gSectorBuff));
+    iTime1 = xTaskGetTickCount();   /* 记下开始时间 */
+    if(remainder != 0)
+    {
+        //2.计算最后一页地址
+        addr += multiple * HEAD_NUM_SECTOR  * sizeof(HEADINFO_STRU);    
+        
+        //3.读取最后一页
+        ret = FRAM_Read (FM24V10_1, addr, gSectorBuff, remainder* sizeof(HEADINFO_STRU));
+        if(ret == 0)
+        {
+            log_e("read fram error\r\n");
+            return ;
+        } 
+        
+        //5.排序        
+        sortHead(gSectorBuff,remainder);   
+        
+        ret = FRAM_Write ( FM24V10_1, addr, gSectorBuff,remainder* sizeof(HEADINFO_STRU));        
+        if(ret == 0)
+        {
+            log_e("write fram error\r\n");
+            return ;
+        }          
+    }    
+
+    
+    for(i=0;i<multiple;i++)
+    {
+        addr = CARD_NO_HEAD_ADDR;//从零开始读;
+        addr += i * HEAD_NUM_SECTOR  * CARD_USER_LEN; 
+        memset(gSectorBuff,0x00,sizeof(gSectorBuff));
+        
+        //3.读当前页      
+        ret = FRAM_Read (FM24V10_1, addr, gSectorBuff, HEAD_NUM_SECTOR* sizeof(HEADINFO_STRU));
+        if(ret == 0)
+        {
+            log_e("read fram error\r\n");
+            return ;
+        }         
+        //排序
+        sortHead(gSectorBuff,HEAD_NUM_SECTOR); 
+        //写回数据
+        ret = FRAM_Write ( FM24V10_1, addr, gSectorBuff,HEAD_NUM_SECTOR* sizeof(HEADINFO_STRU));        
+        if(ret == 0)
+        {
+            log_e("write fram error\r\n");
+            return ;
+        }        
+     }
+
+	iTime2 = xTaskGetTickCount();	/* 记下结束时间 */
+	log_e( "sort all card success，use time: %dms\r\n",iTime2 - iTime1 );  	
+}
+
 
 //return:<0,未找到，>=0在FLASH中的索引值
 static int Bin_Search(HEADINFO_STRU *num,int numsSize,int target)
@@ -1289,9 +1360,14 @@ void addHead(uint8_t *head,uint8_t mode)
   
 }
 
-void qSortCard(HEADINFO_STRU *head,uint32_t length)
-{
-    quickSortNor(head,0, length-1);
-}
+//void qSortCard(HEADINFO_STRU *head,uint32_t length)
+//{
+//    quickSortNor(head,0, length-1);
+//}
+
+
+
+
+
 
 
