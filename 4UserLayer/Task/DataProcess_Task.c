@@ -224,12 +224,18 @@ static void vTaskDataProcess(void *pvParameters)
                     log_d("invalid floor\r\n");
                     break;
                 }
-                sendElevator->devSn = devSendData.data[0].devSn;
-                sendElevator->value = devSendData.data[0].value;
-                
-                log_d("send desc floor = %d,%d\r\n",sendElevator->value,sendElevator->devSn);  
-                
-                sendQueueToDev(sendElevator);
+//                sendElevator->devSn = devSendData.data[0].devSn;
+//                sendElevator->value = devSendData.data[0].value;
+                for(i=0;i<8;i++)
+                {   
+                    if(devSendData.data[i].devSn >= 1)
+                    {
+                        sendElevator->devSn = devSendData.data[i].devSn;
+                        sendElevator->value = devSendData.data[i].value;
+                       //发送数据到队列 
+                       sendQueueToDev(sendElevator);  
+                    }
+                }         
                 break;
             case AUTH_MODE_UNBIND:
                 //直接发送停用设备指令
