@@ -107,7 +107,7 @@ static void vTaskHandShake(void *pvParameters)
 
     while(1)
     {  
-        bsp_HC595Show('A',0,4);
+        bsp_HC595Show('A',0,5);
         vTaskDelay(800);
         bsp_HC595Show(0,0,1);
         vTaskDelay(800);

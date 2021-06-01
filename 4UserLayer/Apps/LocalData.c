@@ -183,29 +183,40 @@ uint8_t writeUserData ( USERDATA_STRU *userData,uint8_t mode )
 	}	
 
     memcpy(tmpHead.headData.sn,head,CARD_NO_LEN_BCD);
+    
     tmpIndex = readHead(&tmpHead,mode);
 
-    //卡号或者是USERID已存在
-    if(tmpIndex != NO_FIND_HEAD)
-    {
-        return 4;
-    }
+    //卡号或者是USERID不存在
+    if(tmpIndex == NO_FIND_HEAD)
+    { 
+        //写表头
+    	addHead(head,mode);
 
-    //写表头
-	addHead(head,mode);
+        //读当前FLASH的索引
+    	ClearRecordIndex();
+        optRecordIndex(&gRecordIndex,READ_PRARM);
 
-    //读当前FLASH的索引
-	ClearRecordIndex();
-    optRecordIndex(&gRecordIndex,READ_PRARM);
-
-	//获取地址
-	if ( mode == CARD_MODE )
-	{
-		addr = CARD_NO_DATA_ADDR + (gRecordIndex.cardNoIndex-1) * ( sizeof ( USERDATA_STRU ) );;
+    	//获取地址
+    	if ( mode == CARD_MODE )
+    	{
+    		addr = CARD_NO_DATA_ADDR + (gRecordIndex.cardNoIndex-1) * ( sizeof ( USERDATA_STRU ) );;
+    	}
+    	else if ( mode == USER_MODE )
+    	{
+    		addr = USER_ID_DATA_ADDR + (gRecordIndex.userIdIndex-1) * ( sizeof ( USERDATA_STRU ) );
+    	}
 	}
-	else if ( mode == USER_MODE )
+	else
 	{
-		addr = USER_ID_DATA_ADDR + (gRecordIndex.userIdIndex-1) * ( sizeof ( USERDATA_STRU ) );
+    	//获取地址
+    	if ( mode == CARD_MODE )
+    	{
+    		addr = CARD_NO_DATA_ADDR + tmpIndex * ( sizeof ( USERDATA_STRU ) );;
+    	}
+    	else if ( mode == USER_MODE )
+    	{
+    		addr = USER_ID_DATA_ADDR + tmpIndex * ( sizeof ( USERDATA_STRU ) );
+    	}	
 	}
 
 	//packet write buff
@@ -248,7 +259,7 @@ uint8_t writeUserData ( USERDATA_STRU *userData,uint8_t mode )
 		}
 
 		times--;
-	}
+	}	
 
 	iTime2 = xTaskGetTickCount();	/* 记下结束时间 */
 	log_e ( "writeUserData成功，耗时: %dms\r\n",iTime2 - iTime1 );
